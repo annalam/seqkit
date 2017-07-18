@@ -1,0 +1,17 @@
+[package]
+name = "seqkit"
+version = "0.1.0"
+authors = ["Matti Annala <matti.annala@uta.fi>"]
+
+[dependencies]
+docopt = "*"
+bio = "*"
+rust-htslib = "*"
+
+[[bin]]
+name = "fasta"
+path = "src/fasta/main.rs"
+
+[[bin]]
+name = "sam"
+path = "src/sam/main.rs"

@@ -12,16 +12,13 @@ use flate2::read::MultiGzDecoder;
 use ascii::AsciiString;
 use std::mem;
 
-mod to_raw; mod trim_by_quality;
+mod to_raw; mod trim_by_quality; mod mask_by_quality;
 
 const USAGE: &'static str = "
 Usage:
-  fasta <subcommand>
-
-Available subcommands:
-  to raw             Convert to raw (headerless) format
-  trim by quality    Trim by quality
-  mask by quality    Mask by quality
+  fasta to raw <fasta/fastq>
+  fasta trim by quality <fastq_file> <min_baseq>
+  fasta mask by quality <fastq_file> <min_baseq>
 ";
 
 fn main() {
@@ -33,10 +30,10 @@ fn main() {
 		to_raw::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
 		trim_by_quality::main();
-	//} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {
-	//	mask_by_quality::main();
+	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {
+		mask_by_quality::main();
 	} else {
-		println!("{}", USAGE); exit(-1);
+		eprintln!("{}", USAGE); exit(-1);
 	}
 }
 

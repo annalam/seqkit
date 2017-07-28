@@ -5,6 +5,7 @@ extern crate rust_htslib;
 
 use std::env;
 use std::process::exit;
+use std::io::{Write, stderr};
 use docopt::{Docopt, ArgvMap};
 
 mod sam;
@@ -29,6 +30,6 @@ fn main() {
 
 pub fn parse_args(usage: &str) -> ArgvMap {
 	Docopt::new(usage).unwrap().parse().unwrap_or_else(|_| {
-		println!("Invalid arguments.\n{}", usage); exit(-1);
+		writeln!(stderr(), "Invalid arguments.\n{}", usage); exit(-1);
 	})
 }

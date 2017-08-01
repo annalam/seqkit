@@ -4,9 +4,9 @@ use std::str;
 use std::thread;
 use std::fs::{File, remove_file};
 use std::process::{Command, Stdio};
-use std::io::{BufReader, BufWriter, BufRead, Write, stderr};
+use std::io::{BufReader, BufWriter, BufRead, Write};
 use rust_htslib::bam;
-use rust_htslib::bam::Read as HTSRead;
+use rust_htslib::bam::Read;
 
 const USAGE: &'static str = "
 Usage:

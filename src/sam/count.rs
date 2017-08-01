@@ -61,7 +61,7 @@ pub fn main() {
 			let frag_size = read.insert_size().abs();
 			if frag_size > 5000 { continue; }
 
-			write!(bedtools_in, "{}\t{}\t{}\n", chr_names[read.tid() as usize], read.pos() - 1, read.pos() + frag_size - 1);
+			write!(bedtools_in, "{}\t{}\t{}\n", chr_names[read.tid() as usize], read.pos(), read.pos() + frag_size);
 	    }
     });
 

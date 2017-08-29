@@ -7,13 +7,15 @@ use std::env;
 use std::process::exit;
 use docopt::{Docopt, ArgvMap};
 
-mod count; mod fragment_lengths; mod statistics;
+mod count; mod fragments; mod fragment_lengths; mod statistics;
 
 const USAGE: &'static str = "
 Usage:
   sam count <bam_file> <regions.bed>
+  sam fragments <bam_file>
   sam fragment lengths <bam_file>
   sam statistics <bam_file>
+  sam mark duplicates <bam_file>
 ";
 
 fn main() {
@@ -23,13 +25,15 @@ fn main() {
 
 	if args.len() >= 2 && args[1] == "count" {
 		count::main();
+	} else if args.len() >= 2 && args[1] == "fragments" {
+		fragments::main();
 	} else if args.len() >= 2 && args[1] == "statistics" {
 		statistics::main();
 	} else if args.len() >= 3 && args[1..3] == ["fragment", "lengths"] {
 		fragment_lengths::main();
-	}
-	//else if args.len() >= 2 && args[1] == "somatic" { somatic::main(); }
-	else { println!("{}", USAGE); exit(-1); }
+	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
+
+	} else { println!("{}", USAGE); exit(-1); }
 }
 
 pub fn parse_args(usage: &str) -> ArgvMap {

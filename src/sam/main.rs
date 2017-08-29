@@ -41,3 +41,27 @@ pub fn parse_args(usage: &str) -> ArgvMap {
 		eprintln!("Invalid arguments.\n{}", usage); exit(-1);
 	})
 }
+
+
+// Helper methods for error reporting
+trait ErrorHelper<T> {
+	fn on_error(self, msg: &str) -> T;
+}
+
+impl<T> ErrorHelper<T> for Option<T> {
+	fn on_error(self, msg: &str) -> T {
+		match self {
+			Some(x) => x,
+			None => { eprintln!("ERROR: {}\n", msg); exit(-1) }
+		}
+	}
+}
+
+impl<T, E> ErrorHelper<T> for Result<T, E> {
+	fn on_error(self, msg: &str) -> T {
+		match self {
+			Ok(x) => x,
+			Err(_) => { eprintln!("ERROR: {}\n", msg); exit(-1) }
+		}
+	}
+}

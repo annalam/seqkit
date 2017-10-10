@@ -6,7 +6,7 @@ use std::process::exit;
 use ascii::{AsciiString, AsciiChar};
 use ErrorHelper;
 use std::process::{Command, Stdio};
-use std::io::{BufReader, BufWriter};
+use std::io::{BufReader, BufWriter, Write};
 use std::collections::HashMap;
 use bio::io::fasta;
 
@@ -21,11 +21,10 @@ Usage:
 ";
 
 pub fn main() {
-	let args = parse_args(USAGE);
+    let args = parse_args(USAGE);
     let genome_path = args.get_str("<genome>");
-    let win_size: usize = args.get_str("--win_size").parse().unwrap();
+    let win_size: i32 = args.get_str("--win-size").parse().unwrap();
     let slide_window = args.get_bool("--sliding");
-
 
     let fasta = fasta::Reader::from_file(format!("{}.fa", genome_path))
 		.on_error(&format!("Genome FASTA file {}.fa could not be read.", genome_path));
@@ -50,13 +49,13 @@ pub fn main() {
         for (chr, seq) in &genome {
             let chrm = chr.trim();
             if &ch.to_string() == chrm {
-                let read = String::from_utf8(seq.to_owned()).unwrap();
+                let read   = String::from_utf8(seq.to_owned()).unwrap();
 
                 let mut qual = Vec::new();
                 if slide_window {
-                    qual = sliding(&read, win_size);
+                    qual = sliding(&chr, &seq, win_size);
                 } else {
-                    qual = moving(&read, win_size, &genome_path);
+                    qual = moving(&chr, &seq, win_size, &genome_path);
                 }
                 println!("{}\tafter parse \t{}", chrm, read.len());
             }
@@ -66,10 +65,10 @@ pub fn main() {
 
 /// Compute mapping quality for reference genome
 /// using sliding window of given size
-fn sliding(seq: &str, window_size: usize) -> Vec<usize> {
+fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> Vec<usize> {
     let mut qual: Vec<usize> = Vec::new();
     let mut strt: usize = 0;
-    let mut endn  = strt + window_size;
+    let mut endn  = strt + window_size as usize;
     let mut read = seq.get(strt..endn).unwrap();
 
     println!("{:?}", read.len());
@@ -79,21 +78,23 @@ fn sliding(seq: &str, window_size: usize) -> Vec<usize> {
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn moving(seq: &str, window_size: usize, genome_path: &str) -> Vec<usize> {
+fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usize> {
     let mut qual: Vec<usize> = Vec::new();
     let mut strt: usize = 0;
     let chrsize = seq.len();
 
     loop {
-        let mut endn  = strt + window_size;
+        let mut endn: usize  = strt + window_size as usize;
 
         if strt >= 0 {
-            let mut read = seq.get(strt..endn).unwrap();
-            // println!("{:?}\t{}", read.len(), &read);
-            // println!("{:?}\t{}\t{}", strt,  endn, chrsize);
+            let mut tmp = seq.get(strt..endn).unwrap();
+            let mut read = String::new();
+            let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
+            read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
+            println!("{}", &read);
             let q = align(read, &genome_path);
             qual.push(q);
-            strt += window_size;
+            strt += window_size as usize;
         } if strt >= chrsize {
             break;
         }
@@ -103,18 +104,19 @@ fn moving(seq: &str, window_size: usize, genome_path: &str) -> Vec<usize> {
 
 /// Compute mapping quality for given read
 /// using bowtie1
-fn align(read: &str, genome_path: &str) -> usize {
+fn align(read: String, genome_path: &str) -> usize {
     let mut q: usize = 255;
     eprintln!("Aligning {} bp windows against the genome...", read.len());
     let bowtie = Command::new("bowtie")
-        .args(&["-f", "-p1", "-v0", "-m1", "-B1", "--suppress", "5,6,7,8", &genome_path, "-"])
+        .args(&["-p1", "-v3", "-m4", "-B1", "--suppress", "5,6,7,8", &genome_path, "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
         .on_error("Could not start Bowtie process.");
 
-    // let mut bowtie_in = BufWriter::new(bowtie.stdin.unwrap());
-    let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
-
-    println!("{:?}", bowtie_out);
+    match bowtie.stdin.unwrap().write_all(read.as_bytes()) {
+        Err(why) => panic!("input not sent to bowtie"),
+        Ok(_) => println!("Bowtie recived input"),
+    }
+    let bowtie_out    = BufReader::new(bowtie.stdout.unwrap());
     q
 }

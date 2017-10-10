@@ -13,7 +13,7 @@ use bio::io::fasta;
 
 const USAGE: &'static str = "
 Usage:
-  fasta mapq track [options] <genome> <min_baseq>
+  fasta mapq track [options] <genome>
 
  Options:
     --win-size=N     window size for read aligment [default: 48]
@@ -23,7 +23,7 @@ Usage:
 pub fn main() {
 	let args = parse_args(USAGE);
     let genome_path = args.get_str("<genome>");
-    let win_size: usize = args.get_str("<win_size>").parse().unwrap();
+    let win_size: usize = args.get_str("--win_size").parse().unwrap();
     let slide_window = args.get_bool("--sliding");
 
 

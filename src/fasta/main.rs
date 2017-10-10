@@ -21,7 +21,7 @@ Usage:
   fasta to raw <fasta/fastq>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
-  fasta mapq track <genome> <min_baseq>
+  fasta mapq track <genome>
 ";
 
 fn main() {

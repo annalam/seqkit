@@ -62,31 +62,6 @@ pub fn main() {
             }
         }
     }
-
-
-    /*
-	let mut line = AsciiString::new();
-	while fasta_file.read_ascii_line(&mut line) {
-		if line[0] != '@' {
-			eprintln!("Invalid FASTQ format encountered."); exit(-1);
-		}
-		print!("{}", line);
-		fasta_file.read_ascii_line(&mut line);
-		let mut seq = line.clone();
-		fasta_file.read_ascii_line(&mut line);
-		fasta_file.read_ascii_line(&mut line);
-		let qual = &line;
-
-		for k in 0..seq.len() {
-			// FIXME: We assume Sanger format base qualities here.
-			if (qual[k] as i32 - 33 as i32) < min_baseq && seq[k] != '\n' {
-				seq[k] = AsciiChar::N;
-			}
-		}
-
-		print!("{}+\n{}", seq, qual);
-	}
-    */
 }
 
 /// Compute mapping quality for reference genome

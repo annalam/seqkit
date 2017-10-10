@@ -58,7 +58,7 @@ pub fn main() {
 		if target_regions.is_empty() == false {
 			// TODO: Check if read overlaps one of the target regions
 			let start = read.pos() + 1;
-			let end = read.cigar().end_pos() + 1;
+			let end = read.cigar().end_pos().unwrap() + 1;
 			for region in &target_regions {
 				on_target_reads += (read.tid() == region.chr && start <= region.end && end >= region.start) as u64;
 			}

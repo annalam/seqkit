@@ -6,8 +6,9 @@ use std::process::exit;
 use ascii::{AsciiString, AsciiChar};
 use ErrorHelper;
 use std::process::{Command, Stdio};
-use std::io::{BufReader, BufWriter, Write};
+use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::collections::HashMap;
+use std::io::Read;
 use bio::io::fasta;
 
 
@@ -41,7 +42,6 @@ pub fn main() {
     let chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8",
                         "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr16",
                         "chr17", "chr18","chr19","chr20","chr21","chr22","chrX","chrY"];
-
 
 
     // starting from chromosome 1, towards 22 then X and Y
@@ -81,42 +81,53 @@ fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> Vec<usize> {
 fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usize> {
     let mut qual: Vec<usize> = Vec::new();
     let mut strt: usize = 0;
+    let mut endn: usize = 0;
     let chrsize = seq.len();
 
-    loop {
-        let mut endn: usize  = strt + window_size as usize;
-
-        if strt >= 0 {
-            let mut tmp = seq.get(strt..endn).unwrap();
-            let mut read = String::new();
-            let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
-            read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
-            println!("{}", &read);
-            let q = align(read, &genome_path);
-            qual.push(q);
-            strt += window_size as usize;
-        } if strt >= chrsize {
-            break;
-        }
+    while strt <= chrsize {
+        endn = strt + window_size as usize;
+        println!("{:?}\tinitial\t{}", strt, endn);
+        let tmp = seq.get(strt..endn).unwrap();
+        let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
+        let read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
+        println!("{}", &read);
+        let q = align(read, &genome_path);
+        qual.push(q);
+        /*
+        if q == 255 { continue; }
+        else {qual.push(q); }
+        */
+        strt += window_size as usize;
+        println!("{:?}\tafter\t{}", strt, endn);
     }
+    println!("{}", qual.len());
     qual
 }
+
 
 /// Compute mapping quality for given read
 /// using bowtie1
 fn align(read: String, genome_path: &str) -> usize {
     let mut q: usize = 255;
-    eprintln!("Aligning {} bp windows against the genome...", read.len());
+    // eprintln!("Aligning {} bp windows against the genome...", read.len());
     let bowtie = Command::new("bowtie")
-        .args(&["-p1", "-v3", "-m4", "-B1", "--suppress", "5,6,7,8", &genome_path, "-"])
+        .args(&["-p1", "-v3", "-m4", "-B1", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
         .on_error("Could not start Bowtie process.");
 
     match bowtie.stdin.unwrap().write_all(read.as_bytes()) {
         Err(why) => panic!("input not sent to bowtie"),
-        Ok(_) => println!("Bowtie recived input"),
+        Ok(_)    => println!("Bowtie recived input"),
     }
+
     let bowtie_out    = BufReader::new(bowtie.stdout.unwrap());
+
+
+    for l in bowtie_out.lines() {
+        let line = l.unwrap();
+        println!("{:?}", line);
+    }
+    
     q
 }

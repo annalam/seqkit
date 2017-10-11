@@ -123,7 +123,7 @@ fn align(read: String, genome_path: &str) -> usize {
 
     for l in bowtie_out.lines() {
         let line = l.unwrap();
-        println!("Bowtie out :\t {:?} ", line);
+        
     }
     q
 }

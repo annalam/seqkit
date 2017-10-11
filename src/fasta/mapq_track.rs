@@ -86,7 +86,6 @@ fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usi
 
     while strt <= chrsize {
         endn = strt + window_size as usize;
-        println!("{:?}\tinitial\t{}", strt, endn);
         let tmp = seq.get(strt..endn).unwrap();
         let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
         let read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
@@ -98,7 +97,6 @@ fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usi
         else {qual.push(q); }
         */
         strt += window_size as usize;
-        println!("{:?}\tafter\t{}", strt, endn);
     }
     println!("{}", qual.len());
     qual
@@ -111,7 +109,7 @@ fn align(read: String, genome_path: &str) -> usize {
     let mut q: usize = 255;
     // eprintln!("Aligning {} bp windows against the genome...", read.len());
     let bowtie = Command::new("bowtie")
-        .args(&["-p1", "-v3", "-m4", "-B1", &genome_path, "-f", "-"])
+        .args(&["-p1", "-a", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
         .on_error("Could not start Bowtie process.");
@@ -123,11 +121,9 @@ fn align(read: String, genome_path: &str) -> usize {
 
     let bowtie_out    = BufReader::new(bowtie.stdout.unwrap());
 
-
     for l in bowtie_out.lines() {
         let line = l.unwrap();
-        println!("{:?}", line);
+        println!("Bowtie out :\t {:?} ", line);
     }
-    
     q
 }

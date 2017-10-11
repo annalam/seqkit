@@ -2,6 +2,7 @@
 extern crate docopt;
 extern crate flate2;
 extern crate ascii;
+extern crate bio;
 
 use std::env;
 use std::process::exit;
@@ -13,12 +14,14 @@ use ascii::AsciiString;
 use std::mem;
 
 mod to_raw; mod trim_by_quality; mod mask_by_quality;
+mod mapq_track;
 
 const USAGE: &'static str = "
 Usage:
   fasta to raw <fasta/fastq>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
+  fasta mapq track <genome>
 ";
 
 fn main() {
@@ -32,6 +35,8 @@ fn main() {
 		trim_by_quality::main();
 	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {
 		mask_by_quality::main();
+    } else if args.len() >= 3 && args[1..3] == ["mapq", "track"] {
+		mapq_track::main();
 	} else {
 		eprintln!("{}", USAGE); exit(-1);
 	}

@@ -85,7 +85,7 @@ fn align(read: String, genome_path: &str) -> usize {
 
     match bowtie.stdin.unwrap().write_all(read.as_bytes()) {
         Err(_why) => panic!("input not sent to bowtie"),
-        Ok(_)    => println!(""),
+        Ok(_)    => print!(""),
     }
 
     let bowtie_out = BufReader::new(bowtie.stdout.unwrap());

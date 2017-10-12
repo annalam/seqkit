@@ -44,22 +44,25 @@ pub fn main() {
 
 
     // starting from chromosome 1, towards 22 then X and Y
-    let mut qual = HashMap::new();
+    //let mut qual = HashMap::new();
 
     for ch  in chromosomes.iter() {
         for (chr, seq) in &genome {
             let chrm = chr.trim();
 
             if &ch.to_string() == chrm {
-                let read   = String::from_utf8(seq.to_owned()).unwrap();
+                // let read   = String::from_utf8(seq.to_owned()).unwrap();
 
                 if slide_window {
-                    qual = sliding(&chr, &seq, win_size);
+                    sliding(&chr, &seq, win_size);
                 } else {
+                    moving(&chr, &seq, win_size, &genome_path);
+                    /*
                     let quals = moving(&chr, &seq, win_size, &genome_path);
                     for (key, val) in quals {
                         qual.insert(key, val);
                     }
+                    */
                 }
             }
 
@@ -81,14 +84,14 @@ fn align(read: String, genome_path: &str) -> usize {
 
 
     match bowtie.stdin.unwrap().write_all(read.as_bytes()) {
-        Err(why) => panic!("input not sent to bowtie"),
-        Ok(_)    => println!("Bowtie recived input"),
+        Err(_why) => panic!("input not sent to bowtie"),
+        Ok(_)    => println!(""),
     }
 
     let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
 
-    for l in bowtie_out.lines() {
-        let line = l.unwrap();
+    for _l in bowtie_out.lines() {
+        //let line = l.unwrap();
         q += 1;
     }
 
@@ -98,7 +101,7 @@ fn align(read: String, genome_path: &str) -> usize {
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> HashMap<String, usize> {
+fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str){
     let mut qual = HashMap::new();
     let mut strt: usize = 0;
     let mut endn: usize = 0;
@@ -113,17 +116,17 @@ fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> HashMap
         let window  = chr.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
         let q = align(read, &genome_path);
 
-        println!("{:?}\t{:?}", &window, &q);
+        println!("{}\t{:?}", &window, &q);
         qual.insert(window, q);
         strt += window_size as usize;
     }
-    qual // return quality HashMap
+    qual; // return quality HashMap
 }
 
 
 /// Compute mapping quality for reference genome
 /// using sliding window of given size
-fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> HashMap<String, usize> {
+fn sliding(chr: &str,  seq: &[u8], window_size: i32){
     /*
     let mut qual: Vec<usize> = Vec::new();
     let mut strt: usize = 0;

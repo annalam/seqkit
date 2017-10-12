@@ -1,6 +1,7 @@
 
 use parse_args;
 use std::str;
+use std::thread;
 use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead, Write};
@@ -38,6 +39,7 @@ pub fn main() {
 
 
     // to make chromosome number order sequence
+
     let chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8",
                         "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr16",
                         "chr17", "chr18","chr19","chr20","chr21","chr22","chrX","chrY"];
@@ -45,37 +47,24 @@ pub fn main() {
 
     // starting from chromosome 1, towards 22 then X and Y
     //let mut qual = HashMap::new();
-
-    for ch  in chromosomes.iter() {
-        for (chr, seq) in &genome {
-            let chrm = chr.trim();
-
-            if &ch.to_string() == chrm {
-                // let read   = String::from_utf8(seq.to_owned()).unwrap();
-
-                if slide_window {
-                    sliding(&chr, &seq, win_size);
-                } else {
-                    moving(&chr, &seq, win_size, &genome_path);
-                    /*
-                    let quals = moving(&chr, &seq, win_size, &genome_path);
-                    for (key, val) in quals {
-                        qual.insert(key, val);
-                    }
-                    */
-                }
-            }
-
-        } // end-for-inner
+    for ch in &chromosomes {
+        let s   = genome.get(&ch.to_string());
+        let seq = s.unwrap();
+        let ref_genome = genome_path.to_owned();
+        if slide_window {
+            sliding(&ch, &seq, win_size);
+        } else {
+            moving(&ch, &seq, win_size, ref_genome);
+        }
     }
-    // end-for-outer
 }
+
 
 /// Compute mapping quality for given read
 /// using bowtie1
 fn align(read: String, genome_path: &str) -> usize {
-    let mut q: usize = 0;
-
+    let read = read.to_owned();
+    let genome_path  = genome_path.to_owned();
     let bowtie = Command::new("bowtie")
         .args(&["-p1", "-a", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
@@ -89,38 +78,30 @@ fn align(read: String, genome_path: &str) -> usize {
     }
 
     let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
-
-    for _l in bowtie_out.lines() {
-        //let line = l.unwrap();
-        q += 1;
-    }
-
+    let q = bowtie_out.lines().count();
     q
 }
 
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str){
-    let mut qual = HashMap::new();
+fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: String) {
     let mut strt: usize = 0;
     let mut endn: usize = 0;
-    let chrsize = seq.len();
-
-    while strt <= chrsize {
+    let ref_genome = genome_path.to_owned();
+    while strt <= seq.len() {
         endn = strt + window_size as usize;
 
         let tmp = seq.get(strt..endn).unwrap();
         let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
         let read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
         let window  = chr.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
-        let q = align(read, &genome_path);
 
+        let q = align(read, &ref_genome);
         println!("{}\t{:?}", &window, &q);
-        qual.insert(window, q);
+
         strt += window_size as usize;
     }
-    qual; // return quality HashMap
 }
 
 

@@ -2,6 +2,7 @@
 use parse_args;
 use std::str;
 use std::thread;
+use std::sync::{Arc, Mutex};
 use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead, Write};
@@ -30,8 +31,7 @@ pub fn main() {
 		.on_error(&format!("Genome FASTA file {}.fa could not be read.", genome_path));
 	eprintln!("Reading reference genome into memory...");
 
-
-	let mut genome = HashMap::new();
+    let mut genome = HashMap::new();
 	for entry in fasta.records() {
 		let chr = entry.unwrap();
 		genome.insert(chr.id().to_owned(), chr.seq().to_owned());
@@ -40,22 +40,35 @@ pub fn main() {
 
     // to make chromosome number order sequence
 
-    let chromosomes = ["chr1", "chr2", "chr3", "chr4", "chr5", "chr6", "chr7", "chr8",
-                        "chr9", "chr10", "chr11", "chr12", "chr13", "chr14", "chr16",
-                        "chr17", "chr18","chr19","chr20","chr21","chr22","chrX","chrY"];
+    let chromosomes = Arc::new(Mutex::new(vec!["chr1", "chr2", "chr3", "chr4", "chr5", "chr6",
+                    "chr7","chr8", "chr9", "chr10", "chr11", "chr12", "chr13", "chr14",
+                    "chr16","chr17", "chr18","chr19","chr20","chr21","chr22","chrX","chrY"]));
 
 
     // starting from chromosome 1, towards 22 then X and Y
     //let mut qual = HashMap::new();
-    for ch in &chromosomes {
-        let s   = genome.get(&ch.to_string());
-        let seq = s.unwrap();
-        let ref_genome = genome_path.to_owned();
+    for n in 0..23 {
+        let chrom = chromosomes.clone();
+        let refg  = genome.clone();
+        let win   = win_size.clone();
+        let geno  = genome_path.to_owned();
+        let mut threads: Vec<i32> = vec![];
+
+        let cur = thread::spawn(move || {
+            let  mut chr = chrom.lock().unwrap();
+            let ch  = chr[n];
+            let seq = refg.get(ch).unwrap();
+            println!("{}\t{}\t{}\t{:?}", ch, seq.len(), win, geno);
+            moving(&ch, &seq, win, geno);
+        });
+
+        /*
         if slide_window {
             sliding(&ch, &seq, win_size);
         } else {
             moving(&ch, &seq, win_size, ref_genome);
         }
+        */
     }
 }
 

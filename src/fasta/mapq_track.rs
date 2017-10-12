@@ -1,14 +1,10 @@
 
 use parse_args;
-use {read_buffered, AsciiBufRead};
 use std::str;
-use std::process::exit;
-use ascii::{AsciiString, AsciiChar};
 use ErrorHelper;
 use std::process::{Command, Stdio};
-use std::io::{BufReader, BufWriter, BufRead, Write};
+use std::io::{BufReader, BufRead, Write};
 use std::collections::HashMap;
-use std::io::Read;
 use bio::io::fasta;
 
 
@@ -20,6 +16,7 @@ Usage:
     --win-size=N     window size for read aligment [default: 48]
     --sliding        sliding window mode
 ";
+
 
 pub fn main() {
     let args = parse_args(USAGE);
@@ -45,17 +42,22 @@ pub fn main() {
 
 
     // starting from chromosome 1, towards 22 then X and Y
+    let mut qual = HashMap::new();
+    //let mut qual: Vec<Mapq> = Vec::new();
     for ch  in chromosomes.iter() {
         for (chr, seq) in &genome {
             let chrm = chr.trim();
             if &ch.to_string() == chrm {
                 let read   = String::from_utf8(seq.to_owned()).unwrap();
 
-                let mut qual = Vec::new();
                 if slide_window {
                     qual = sliding(&chr, &seq, win_size);
+                    // qual.append(sliding(&chr, &seq, win_size));
                 } else {
-                    qual = moving(&chr, &seq, win_size, &genome_path);
+                    let quals = moving(&chr, &seq, win_size, &genome_path);
+                    for (key, val) in quals {
+                        qual.insert(key, val);
+                    }
                 }
                 println!("{}\tafter parse \t{}", chrm, read.len());
             }
@@ -65,11 +67,11 @@ pub fn main() {
 
 /// Compute mapping quality for reference genome
 /// using sliding window of given size
-fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> Vec<usize> {
+fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> HashMap<String, usize> {
     let mut qual: Vec<usize> = Vec::new();
     let mut strt: usize = 0;
     let mut endn  = strt + window_size as usize;
-    let mut read = seq.get(strt..endn).unwrap();
+    let read = seq.get(strt..endn).unwrap();
 
     println!("{:?}", read.len());
     unimplemented!()
@@ -78,8 +80,8 @@ fn sliding(chr: &str,  seq: &[u8], window_size: i32) -> Vec<usize> {
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usize> {
-    let mut qual: Vec<usize> = Vec::new();
+fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> HashMap<String, usize> {
+    let mut qual = HashMap::new();
     let mut strt: usize = 0;
     let mut endn: usize = 0;
     let chrsize = seq.len();
@@ -90,8 +92,9 @@ fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usi
         let header  = ">".to_string() + chr + ":" + &strt.to_string() + "-" + &endn.to_string();
         let read = header.to_owned() + "\n"+ &String::from_utf8(tmp.to_vec()).unwrap();
         println!("{}", &read);
+        let window  = chr.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
         let q = align(read, &genome_path);
-        qual.push(q);
+        qual.insert(window, q);
         /*
         if q == 255 { continue; }
         else {qual.push(q); }
@@ -107,7 +110,6 @@ fn moving(chr: &str, seq: &[u8], window_size: i32, genome_path: &str) -> Vec<usi
 /// using bowtie1
 fn align(read: String, genome_path: &str) -> usize {
     let mut q: usize = 255;
-    // eprintln!("Aligning {} bp windows against the genome...", read.len());
     let bowtie = Command::new("bowtie")
         .args(&["-p1", "-a", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
@@ -119,11 +121,11 @@ fn align(read: String, genome_path: &str) -> usize {
         Ok(_)    => println!("Bowtie recived input"),
     }
 
-    let bowtie_out    = BufReader::new(bowtie.stdout.unwrap());
+    let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
 
     for l in bowtie_out.lines() {
         let line = l.unwrap();
-        
+
     }
     q
 }

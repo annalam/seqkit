@@ -30,7 +30,7 @@ pub fn main() {
     let genome = genome_path.to_owned();
 
     let bowtie = Command::new("bowtie")
-        .args(&["-p1", "-a", &genome_path, "-f", "-"])
+        .args(&["-p1", "-k10", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
         .on_error("Could not start Bowtie process.");

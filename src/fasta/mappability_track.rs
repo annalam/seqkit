@@ -2,22 +2,19 @@
 use parse_args;
 use std::str;
 use std::thread;
-use std::sync::{Arc, Mutex};
 use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
-use std::collections::HashMap;
 use std::fs::File;
 use bio::io::fasta;
 
-
 const USAGE: &'static str = "
 Usage:
-  fasta mapq track [options] <genome>
+  fasta mappability track [options] <genome>
 
  Options:
-    --win-size=N     window size for read aligment [default: 48]
-    --sliding        sliding window mode
+    --win-size=N     window size for bowtie aligment (4-1024) [default: 48]
+    --sliding        enable sliding window mode
 ";
 
 
@@ -29,6 +26,8 @@ pub fn main() {
 
     let genome = genome_path.to_owned();
     let bowtie = Command::new("bowtie")
+        // bowtie running in a single thread to maintain the sequence order[-p1]
+        // maximum of 10 aligments are considered for every input sequence slice[-k10]
         .args(&["-p1", "-k10", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
@@ -43,13 +42,7 @@ pub fn main() {
         let fasta = fasta::Reader::from_file(format!("{}.fa", &genome))
     		.on_error(&format!("Genome FASTA file {}.fa could not be read.", &genome));
 
-        if sliding {
-                eprintln!("{}", "Sliding-window mode selected!");
-    			send_sliding_windows(fasta, &mut bowtie_in, win_size);
-    		} else {
-                eprintln!("{}", "Moving-window mode selected!");
-    			send_moving_windows(fasta, &mut bowtie_in, win_size);
-    		}
+        send_seq_slices(fasta, &mut bowtie_in, win_size, sliding);
     });
 
     let mut prev = String::new();
@@ -69,7 +62,7 @@ pub fn main() {
             prev_read_count += 1;
             prev = window;
         } else if window != prev && prev_read_count > 0 {
-            println!("{}\t{}", &window, &prev_read_count);
+            println!("{}\t{}", &window.trim_right_matches(':'), &prev_read_count);
             reads_count += 1;
             prev_read_count = reads_count;
             prev = window;
@@ -78,39 +71,42 @@ pub fn main() {
         }
     }
 
-    let res = child.join();
+    let _res = child.join();
 }
 
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize) {
-    eprintln!("running send_moving_windows function");
+fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize, sliding: bool) {
+
+    if sliding {
+        eprintln!("running sliding-window mode");
+    } else {
+        eprintln!("running moving-window mode");
+    }
 
     for entry in fasta.records() {
         let mut strt: usize = 0;
-        let mut endn: usize = 0;
         let chr = entry.unwrap();
         eprintln!("{}\t{}", chr.id(), chr.seq().len());
         let ch  = chr.id().to_owned();
         let seq = chr.seq().to_owned();
 
-        while strt + 48 <= seq.len() + 1 {
-            endn = strt + win_size as usize + 1;
+        while strt + win_size as usize <= seq.len() + 1 {
+            let endn = strt + win_size as usize;
             let read = seq.get(strt..endn).unwrap();
+            // printing genome slice into 1-based co-ordinates
             let window  = ch.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
 
-            //println!("{:?}\n{:?}", &window, &read);
+            //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
         	write!(aligner_in, ">{}:\n", &window);
     		aligner_in.write_all(&read);
-            strt += win_size as usize;
+            if sliding {
+                strt += 1;
+            } else {
+                strt += win_size as usize;
+            }
         }
         eprintln!("Processing {}\tcompleted!", &ch);
     }
-}
-
-/// Compute mapping quality for reference genome
-/// using sliding window of given size
-fn send_sliding_windows(chr: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize){
-    unimplemented!()
 }

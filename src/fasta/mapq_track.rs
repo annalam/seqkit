@@ -16,8 +16,8 @@ Usage:
   fasta mapq track [options] <genome>
 
  Options:
-    --win-size=N     window size for read aligment [default: 48]
-    --sliding        sliding window mode
+    --win-size=N     window size for bowtie aligment (3-1023) [default: 48]
+    --sliding        enable sliding window mode
 ";
 
 
@@ -43,13 +43,7 @@ pub fn main() {
         let fasta = fasta::Reader::from_file(format!("{}.fa", &genome))
     		.on_error(&format!("Genome FASTA file {}.fa could not be read.", &genome));
 
-        if sliding {
-                eprintln!("{}", "Sliding-window mode selected!");
-    			send_sliding_windows(fasta, &mut bowtie_in, win_size);
-    		} else {
-                eprintln!("{}", "Moving-window mode selected!");
-    			send_moving_windows(fasta, &mut bowtie_in, win_size);
-    		}
+        send_seq_slices(fasta, &mut bowtie_in, win_size, sliding);
     });
 
     let mut prev = String::new();
@@ -84,8 +78,12 @@ pub fn main() {
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize) {
-    eprintln!("running send_moving_windows function");
+fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize, sliding: bool) {
+    if sliding {
+        eprintln!("running sliding-window mode");
+    } else {
+        eprintln!("running moving-window mode");
+    }
 
     for entry in fasta.records() {
         let mut strt: usize = 0;
@@ -103,14 +101,12 @@ fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_s
             //println!("{:?}\n{:?}", &window, &read);
         	write!(aligner_in, ">{}:\n", &window);
     		aligner_in.write_all(&read);
-            strt += win_size as usize;
+            if sliding {
+                strt += 1;
+            } else {
+                strt += win_size as usize;
+            }
         }
         eprintln!("Processing {}\tcompleted!", &ch);
     }
-}
-
-/// Compute mapping quality for reference genome
-/// using sliding window of given size
-fn send_sliding_windows(chr: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize){
-    unimplemented!()
 }

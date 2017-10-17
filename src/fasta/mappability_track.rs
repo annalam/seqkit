@@ -13,7 +13,7 @@ Usage:
   fasta mappability track [options] <genome>
 
  Options:
-    --win-size=N     window size for bowtie aligment (4-1024) [default: 48]
+    --win-size=N     window size for bowtie alignment (4-1024) [default: 48]
     --sliding        enable sliding window mode
 ";
 

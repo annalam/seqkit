@@ -2,11 +2,9 @@
 use parse_args;
 use std::str;
 use std::thread;
-use std::sync::{Arc, Mutex};
 use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
-use std::collections::HashMap;
 use std::fs::File;
 use bio::io::fasta;
 
@@ -29,6 +27,8 @@ pub fn main() {
 
     let genome = genome_path.to_owned();
     let bowtie = Command::new("bowtie")
+        // bowtie running in a single thread to maintain the sequence order[-p1]
+        // maximum of 10 aligments are considered for every input sequence slice[-k10]
         .args(&["-p1", "-k10", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
@@ -72,7 +72,7 @@ pub fn main() {
         }
     }
 
-    let res = child.join();
+    let _res = child.join();
 }
 
 

@@ -8,13 +8,12 @@ use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::fs::File;
 use bio::io::fasta;
 
-
 const USAGE: &'static str = "
 Usage:
-  fasta mapq track [options] <genome>
+  fasta mappability track [options] <genome>
 
  Options:
-    --win-size=N     window size for bowtie aligment (3-1023) [default: 48]
+    --win-size=N     window size for bowtie aligment (4-1024) [default: 48]
     --sliding        enable sliding window mode
 ";
 
@@ -63,7 +62,7 @@ pub fn main() {
             prev_read_count += 1;
             prev = window;
         } else if window != prev && prev_read_count > 0 {
-            println!("{}\t{}", &window, &prev_read_count);
+            println!("{}\t{}", &window.trim_right_matches(':'), &prev_read_count);
             reads_count += 1;
             prev_read_count = reads_count;
             prev = window;
@@ -79,6 +78,7 @@ pub fn main() {
 /// Compute mapping quality for reference genome
 /// using moving window of given size
 fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize, sliding: bool) {
+
     if sliding {
         eprintln!("running sliding-window mode");
     } else {
@@ -87,18 +87,18 @@ fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size:
 
     for entry in fasta.records() {
         let mut strt: usize = 0;
-        let mut endn: usize = 0;
         let chr = entry.unwrap();
         eprintln!("{}\t{}", chr.id(), chr.seq().len());
         let ch  = chr.id().to_owned();
         let seq = chr.seq().to_owned();
 
-        while strt + 48 <= seq.len() + 1 {
-            endn = strt + win_size as usize + 1;
+        while strt + win_size as usize <= seq.len() + 1 {
+            let endn = strt + win_size as usize;
             let read = seq.get(strt..endn).unwrap();
+            // printing genome slice into 1-based co-ordinates
             let window  = ch.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
 
-            //println!("{:?}\n{:?}", &window, &read);
+            //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
         	write!(aligner_in, ">{}:\n", &window);
     		aligner_in.write_all(&read);
             if sliding {

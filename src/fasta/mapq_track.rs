@@ -28,7 +28,6 @@ pub fn main() {
     let sliding = args.get_bool("--sliding");
 
     let genome = genome_path.to_owned();
-
     let bowtie = Command::new("bowtie")
         .args(&["-p1", "-k10", &genome_path, "-f", "-"])
         .stdin(Stdio::piped())
@@ -87,28 +86,26 @@ pub fn main() {
 /// using moving window of given size
 fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize) {
     eprintln!("running send_moving_windows function");
-    let mut num_reads_sent = 0;
-    let mut strt: usize = 0;
-    let mut endn: usize = 0;
 
     for entry in fasta.records() {
+        let mut strt: usize = 0;
+        let mut endn: usize = 0;
         let chr = entry.unwrap();
         eprintln!("{}\t{}", chr.id(), chr.seq().len());
-
         let ch  = chr.id().to_owned();
         let seq = chr.seq().to_owned();
 
-        while strt <= seq.len() {
+        while strt + 48 <= seq.len() + 1 {
             endn = strt + win_size as usize + 1;
-            num_reads_sent += 1;
             let read = seq.get(strt..endn).unwrap();
             let window  = ch.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
 
-    		//    println!(">{}\n{:?}", &window, &tmp);
-    		write!(aligner_in, ">{}:\n", &window);
+            //println!("{:?}\n{:?}", &window, &read);
+        	write!(aligner_in, ">{}:\n", &window);
     		aligner_in.write_all(&read);
             strt += win_size as usize;
         }
+        eprintln!("Processing {}\tcompleted!", &ch);
     }
 }
 

@@ -98,7 +98,7 @@ fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_s
         let ch  = chr.id().to_owned();
         let seq = chr.seq().to_owned();
 
-        while strt <= seq.len() {
+        while endn <= seq.len() + 1 {
             endn = strt + win_size as usize + 1;
             num_reads_sent += 1;
             let read = seq.get(strt..endn).unwrap();
@@ -109,6 +109,7 @@ fn send_moving_windows(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_s
     		aligner_in.write_all(&read);
             strt += win_size as usize;
         }
+        eprintln!("Processing {}\tcompleted!", &chr.id());
     }
 }
 

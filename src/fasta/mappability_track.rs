@@ -156,7 +156,8 @@ fn send_list_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, list_pos
                 let endn = strt + win_size as usize;
                 let read = seq.get(strt..endn).unwrap();
                 // printing genome slice into 1-based co-ordinates
-                let window  = ch.to_owned() + ":" + &strt.to_string();
+                // output id will have input position
+                let window  = ch.to_owned() + ":" + &pos.to_string();
                 //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
                 write!(aligner_in, ">{}:\n", &window);
                 aligner_in.write_all(&read);

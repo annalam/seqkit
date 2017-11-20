@@ -9,6 +9,7 @@ bio = "*"
 rust-htslib = "*"
 flate2 = "*"
 ascii = "*"
+num-traits = "0.1.40"
 
 [[bin]]
 name = "fasta"

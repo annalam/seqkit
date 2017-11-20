@@ -3,6 +3,7 @@ extern crate docopt;
 extern crate flate2;
 extern crate ascii;
 extern crate bio;
+extern crate num_traits;
 
 use std::env;
 use std::process::exit;

@@ -1,5 +1,6 @@
 
 use parse_args;
+use std;
 use std::str;
 use std::thread;
 use ErrorHelper;
@@ -8,7 +9,7 @@ use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::collections::HashSet;
 use std::fs::File;
 use bio::io::fasta;
-
+use num_traits::float::Float;
 
 const USAGE: &'static str = "
 Usage:
@@ -42,10 +43,10 @@ pub fn main() {
     }
 
 
-    let bowtie = Command::new("bowtie")
+    let bowtie = Command::new("bowtie2")
         // bowtie running in a single thread to maintain the sequence order[-p1]
         // maximum of 10 aligments are considered for every input sequence slice[-k10]
-        .args(&["-p1", "-k10", &genome_path, "-f", "-"])
+        .args(&["-p8", "--reorder", "-x", &genome_path, "-f", "-U", "-" ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
         .on_error("Could not start Bowtie process.");
@@ -54,7 +55,7 @@ pub fn main() {
     let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
 
     let child = thread::spawn(move || {
-        eprintln!("spawning a new thread for bowtie!");
+        eprintln!("spawning a new thread for bowtie2!");
         eprintln!("Reading reference genome into memory...");
         let fasta = fasta::Reader::from_file(format!("{}.fa", &genome))
     		.on_error(&format!("Genome FASTA file {}.fa could not be read.", &genome));
@@ -65,30 +66,20 @@ pub fn main() {
         }
     });
 
-    let mut prev = String::new();
-    let mut prev_read_count = 0;
 
     for l in bowtie_out.lines() {
         let line = l.unwrap();
-        let mut cols = line.split('\t');
-        let window = cols.nth(0).unwrap().to_string();
-        let mut reads_count = 0;
 
-        if prev.is_empty() && prev_read_count == 0 {
-            reads_count += 1;
-            prev = window;
-            prev_read_count = reads_count;
-        } else if window == prev && prev_read_count > 0 {
-            prev_read_count += 1;
-            prev = window;
-        } else if window != prev && prev_read_count > 0 {
-            println!("{}\t{}", &window.trim_right_matches(':'), &prev_read_count);
-            reads_count += 1;
-            prev_read_count = reads_count;
-            prev = window;
-        } else {
-            println!("{}\tSomthing else happend", line);
-        }
+        if line.starts_with("chr") {
+            let mut cols: Vec<&str> = line.split('\t').collect();
+            let mut window = cols[0].to_string().replace(":", "\t");
+            let mut window = window.replace("-", "\t");
+            let mapq: f64 = cols[4].parse::<f64>().unwrap();
+            let mappability = format!("{:.*}", 3, 1.0 - (10.0).powf(-mapq/10.0));
+
+            println!("{}\t{}", &window.trim_right_matches(':'), &mappability);
+        } else { continue  }
+
     }
 
     let _res = child.join();

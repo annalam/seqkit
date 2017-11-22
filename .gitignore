@@ -1,4 +1,7 @@
 *.lock
 /target
 *.tsv
+*.sv
+*.out
+*.txt
 .gitignore

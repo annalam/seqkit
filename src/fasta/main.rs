@@ -4,6 +4,7 @@ extern crate flate2;
 extern crate ascii;
 extern crate bio;
 extern crate num_traits;
+extern crate parasailors;
 
 use std::env;
 use std::process::exit;
@@ -16,6 +17,7 @@ use std::mem;
 
 mod to_raw; mod trim_by_quality; mod mask_by_quality;
 mod mappability_track;
+mod pairwise_similarity;
 
 const USAGE: &'static str = "
 Usage:
@@ -23,6 +25,7 @@ Usage:
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
+  fasta pairwise similarity <genome> <fusion_table>
 ";
 
 fn main() {
@@ -38,6 +41,8 @@ fn main() {
 		mask_by_quality::main();
     } else if args.len() >= 3 && args[1..3] == ["mappability", "track"] {
 		mappability_track::main();
+	} else if args.len() >= 3 && args[1..3] == ["pairwise", "similarity"] {
+		pairwise_similarity::main();
 	} else {
 		eprintln!("{}", USAGE); exit(-1);
 	}

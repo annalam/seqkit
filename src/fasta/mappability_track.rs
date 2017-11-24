@@ -1,12 +1,10 @@
 
 use parse_args;
-use std;
 use std::str;
 use std::thread;
 use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
-use std::collections::HashSet;
 use std::fs::File;
 use bio::io::fasta;
 use num_traits::float::Float;
@@ -71,9 +69,9 @@ pub fn main() {
         let line = l.unwrap();
 
         if line.starts_with("chr") {
-            let mut cols: Vec<&str> = line.split('\t').collect();
+            let cols: Vec<&str> = line.split('\t').collect();
             let mut window = cols[0].to_string().replace(":", "\t");
-            let mut window = window.replace("-", "\t");
+                window = window.replace("-", "\t");
             let mapq: f64 = cols[4].parse::<f64>().unwrap();
             let mappability = format!("{:.*}", 3, 1.0 - (10.0).powf(-mapq/10.0));
 
@@ -115,8 +113,8 @@ fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size:
             }
 
             //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
-        	write!(aligner_in, ">{}:\n", &window);
-    		aligner_in.write_all(&read);
+        	let _ = write!(aligner_in, ">{}:\n", &window);
+    		let _ = aligner_in.write_all(&read);
             if sliding {
                 strt += 1;
             } else {
@@ -141,7 +139,7 @@ fn send_list_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, list_pos
         for line in list_pos.iter() {
             let chr         = line.split(':').nth(0).unwrap().to_string();
             let pos: usize  = line.split(':').nth(1).unwrap().parse().unwrap();
-            let mut strt: usize = pos - (win_size / 2) ;
+            let strt: usize = pos - (win_size / 2) ;
 
             if ch == chr && strt + win_size <= seq.len() {
                 let endn = strt + win_size as usize;
@@ -150,8 +148,8 @@ fn send_list_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, list_pos
                 // output id will have input position
                 let window  = ch.to_owned() + ":" + &pos.to_string();
                 //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
-                write!(aligner_in, ">{}:\n", &window);
-                aligner_in.write_all(&read);
+                let _ = write!(aligner_in, ">{}:\n", &window);
+                let _ = aligner_in.write_all(&read);
             }
         }
         eprintln!("Processing {}\tcompleted!", &ch);

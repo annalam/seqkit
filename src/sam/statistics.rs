@@ -29,7 +29,7 @@ pub fn main() {
 	let bam_header = bam.header();
 
 	let mut target_regions: Vec<Region> = Vec::new();
-	if args.get_str("--target-regions").is_empty() == false {
+	if args.get_str("--on-target").is_empty() == false {
 		let mut bed = bed::Reader::from_file(args.get_str("--on-target"))
 			.on_error("Cannot open BED file.");
 		for r in bed.records() {

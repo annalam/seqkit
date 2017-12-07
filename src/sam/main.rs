@@ -8,12 +8,14 @@ use std::process::exit;
 use docopt::{Docopt, ArgvMap};
 
 mod count; mod fragments; mod fragment_lengths; mod statistics;
+mod coverage_histogram; mod mark_duplicates;
 
 const USAGE: &'static str = "
 Usage:
   sam count <bam_file> <regions.bed>
   sam fragments <bam_file>
   sam fragment lengths <bam_file>
+  sam coverage histogram <bam_file>
   sam statistics <bam_file>
   sam mark duplicates <bam_file>
 ";
@@ -32,7 +34,9 @@ fn main() {
 	} else if args.len() >= 3 && args[1..3] == ["fragment", "lengths"] {
 		fragment_lengths::main();
 	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
-
+		mark_duplicates::main();
+	} else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
+		coverage_histogram::main();
 	} else { println!("{}", USAGE); exit(-1); }
 }
 

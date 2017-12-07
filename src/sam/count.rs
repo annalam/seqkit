@@ -43,7 +43,7 @@ pub fn main() {
 	let mut bedtools_in = BufWriter::new(bedtools.stdin.unwrap());
 	let bedtools_out = BufReader::new(bedtools.stdout.unwrap());
 	thread::spawn(move || {
-		let bam = bam::Reader::from_path(&bam_path).unwrap();
+		let mut bam = bam::Reader::from_path(&bam_path).unwrap();
 		for r in bam.records() {
 			let read = r.unwrap();
 			if read.is_paired() == false { continue; }

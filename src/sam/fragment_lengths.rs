@@ -20,7 +20,7 @@ pub fn main() {
 
 	let mut histogram: Vec<usize> = vec![0; max_frag_size + 1];
 
-	let bam = bam::Reader::from_path(&bam_path).unwrap();
+	let mut bam = bam::Reader::from_path(&bam_path).unwrap();
 	for r in bam.records() {
 		let read = r.unwrap();
 		if read.is_paired() == false { continue; }

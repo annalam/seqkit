@@ -19,7 +19,7 @@ pub fn main() {
 	let min_frag_size: i32 = args.get_str("--min-size").parse().unwrap();
 	let max_frag_size: i32 = args.get_str("--max-size").parse().unwrap();
 
-	let bam = bam::Reader::from_path(&bam_path).unwrap();
+	let mut bam = bam::Reader::from_path(&bam_path).unwrap();
 
 	let mut chr_names: Vec<String> = Vec::new();
 	for name in bam.header().target_names() {

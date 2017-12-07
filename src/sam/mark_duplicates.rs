@@ -16,11 +16,13 @@ Usage:
   sam mark duplicates [options] <bam_file>
 
 Options:
+  --debug              Print information about duplicate marking process
   --mark-semi-aligned  Mark duplicates among mapped reads with an unmapped mate
   --mark-unaligned     Mark duplicates among unaligned reads
   --allow-erosion=N    Assume that two DNA fragments can be duplicates even if
                        one of them has eroded N bases at one end (but not
                        both ends) [default: 0]
+
 
 Description:
 This command identifies PCR/optical duplicates in the input BAM file, and outputs a new BAM file where duplicate reads have been flagged with the 0x400 (\"PCR or optical duplicate\") flag. Memory usage is lowest when the tool is run on position-sorted BAM files, but the tool does also work with unsorted BAM files. A BAM index is not required.
@@ -37,12 +39,13 @@ When two or more redundant read pairs are identified, the software leaves one re
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
+	let debug = args.get_bool("--debug");
 
-	let bam = bam::Reader::from_path(&bam_path)
+	let mut bam = bam::Reader::from_path(&bam_path)
 		.expect(&format!("Cannot open BAM file {}", bam_path));
-	let header = bam.header();
+	let header = bam.header().clone();
 
-	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(header)).unwrap();
+	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(&header)).unwrap();
 
 	// These variables are used to collect statistics on what percentage
 	// of reads were classified as duplicates.
@@ -74,6 +77,9 @@ pub fn main() {
 		total_aligned_reads += candidates.len();
 		let mut duplicate = vec![false; candidates.len()];
 		for c in 0..candidates.len() {
+			if debug && candidates.len() > 1 {
+				print_read(&candidates[c], duplicate[c]);
+			}
 			if duplicate[c] {
 				candidates[c].set_duplicate();
 				out.write(&candidates[c]).unwrap();
@@ -89,6 +95,8 @@ pub fn main() {
 			out.write(&candidates[c]).unwrap();
 		}
 
+		if debug && candidates.len() > 1 { eprintln!("---------------"); }
+
 		// Quick check to ensure that BAM file is position-sorted.
 		assert!(read.pos() > cluster_pos || read.tid() != cluster_chr);
 
@@ -100,22 +108,40 @@ pub fn main() {
 	}
 
 	eprintln!("{} / {} ({:.1}%) aligned reads were marked as duplicates.",
-		total_marked_duplicate, total_aligned_reads, total_marked_duplicate as f64 / total_aligned_reads as f64 * 100.0);
+		total_marked_duplicate, total_aligned_reads,
+		total_marked_duplicate as f64 / total_aligned_reads as f64 * 100.0);
 }
 
 // Two reads are considered duplicates if:
 // - They are in the same chromosome
 // - They have the same start position
 // - They are in the same strand
-// - Their mates are considered duplicates (by above criteria) or are unaligned
+// - Their mates are not in different chromosomes
+// - Their mates are not in different strands
+// - Their mate positions do not differ by more than 1000 bp
 fn are_duplicates(a: &Record, b: &Record) -> bool {
-	//if a.tid() != b.tid() { return false; }   // Checked earlier
-	//if a.pos() != b.pos() { return false; }   // Checked earlier
+	if a.tid() != b.tid() { return false; }
+	if a.pos() != b.pos() { return false; }
 	if a.is_reverse() != b.is_reverse() { return false; }
 	if a.is_mate_unmapped() == false && b.is_mate_unmapped() == false {
 		if a.mtid() != b.mtid() { return false; }
-		if a.mpos() != b.mpos() { return false; }
+		if a.insert_size() != b.insert_size() { return false; }
 		if a.is_mate_reverse() != b.is_mate_reverse() { return false; }
+		if a.insert_size() == 0 && (a.mpos() - b.mpos()).abs() > 1000 {
+			return false;
+		}
+		if (a.mpos() - b.mpos()).abs() > 1000 { return false; }
 	}
 	return true;
+}
+
+fn print_read(read: &Record, duplicate: bool) {
+	let pos = if read.is_reverse() {
+		read.cigar().end_pos().unwrap() - 1
+	} else {
+		read.pos()
+	};
+	eprintln!("chr?:{} ({}), insert size = {}: {}", pos,
+		if read.is_reverse() { '-' } else { '+' }, read.insert_size(),
+		if duplicate { "" } else { " ***" });
 }

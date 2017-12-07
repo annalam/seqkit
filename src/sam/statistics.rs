@@ -24,9 +24,9 @@ pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
 
-	let bam = bam::Reader::from_path(&bam_path)
+	let mut bam = bam::Reader::from_path(&bam_path)
 		.on_error("Could not open BAM file.");
-	let bam_header = bam.header();
+	let bam_header = bam.header().clone();
 
 	let mut target_regions: Vec<Region> = Vec::new();
 	if args.get_str("--on-target").is_empty() == false {

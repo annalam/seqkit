@@ -89,7 +89,7 @@ pub fn main() {
 	let debug_filename = &bam_path.replace(".bam", "_tail_discards_debug.bam");
 
 	let mut discarded_out = if debug { 								
-								eprintln!("Writing discarded reads to file '{}'. (debug)", &debug_filename);
+								eprintln!("DEBUG: Writing discarded reads to file '{}'. (debug)", &debug_filename);
 								bam::Writer::from_path( &debug_filename, &bam::header::Header::from_template(&header_view))
 									.on_error(&format!("Cannot create file '{}'", &debug_filename))
 							}

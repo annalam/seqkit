@@ -56,7 +56,7 @@ pub fn read_buffered(path: &str) -> Box<BufRead> {
 		let file = File::open(path).on_error(&format!(
 			"Cannot open file {}.", path));
 		if path.ends_with(".gz") {
-			Box::new(BufReader::new(MultiGzDecoder::new(file).unwrap()))
+			Box::new(BufReader::new(MultiGzDecoder::new(file)))
 		} else {
 			Box::new(BufReader::new(file))
 		}

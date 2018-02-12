@@ -2,13 +2,16 @@
 extern crate docopt;
 extern crate bio;
 extern crate rust_htslib;
+extern crate ansi_term;
 
 use std::env;
 use std::process::exit;
 use docopt::{Docopt, ArgvMap};
 
 mod count; mod fragments; mod fragment_lengths; mod statistics;
-mod coverage_histogram; mod mark_duplicates;
+//mod coverage_histogram;
+mod mark_duplicates; mod discard_tail_artifacts;
+mod genome_reader;
 
 const USAGE: &'static str = "
 Usage:
@@ -18,6 +21,7 @@ Usage:
   sam coverage histogram <bam_file>
   sam statistics <bam_file>
   sam mark duplicates <bam_file>
+  sam discard tail artifacts <ref_genome.fa> <bam_file>
 ";
 
 fn main() {
@@ -35,9 +39,16 @@ fn main() {
 		fragment_lengths::main();
 	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
 		mark_duplicates::main();
-	} else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
-		coverage_histogram::main();
-	} else { println!("{}", USAGE); exit(-1); }
+	} else if args.len() >= 4 && args[1..4] == ["discard", "tail", "artifacts"] {
+		discard_tail_artifacts::main();
+	}
+	//else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
+	//	coverage_histogram::main();
+	//}
+	else {
+		println!("ERROR: Invalid or missing module selection.\n{}", USAGE); exit(-1);
+
+	}
 }
 
 pub fn parse_args(usage: &str) -> ArgvMap {

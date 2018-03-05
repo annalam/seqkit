@@ -1,5 +1,5 @@
 
-use parse_args;
+use common::parse_args;
 use std::str;
 use std::thread;
 use std::fs::{File, remove_file};

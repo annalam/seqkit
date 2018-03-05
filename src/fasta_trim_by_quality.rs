@@ -1,6 +1,5 @@
 
-use parse_args;
-use {read_buffered, AsciiBufRead};
+use common::{parse_args, read_buffered, AsciiBufRead};
 use std::str;
 use std::process::exit;
 use ascii::AsciiString;

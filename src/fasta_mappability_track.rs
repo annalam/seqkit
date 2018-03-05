@@ -1,8 +1,7 @@
 
-use parse_args;
+use common::parse_args;
 use std::str;
 use std::thread;
-use ErrorHelper;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::fs::File;
@@ -31,8 +30,8 @@ pub fn main() {
 
     let mut list_pos = Vec::<String>::new();
     if !list_path.is_empty() {
-        let ls = BufReader::new(File::open(&list_path).on_error(
-            &format!("Could not open list file '{}'.", list_path)));
+        let ls = BufReader::new(File::open(&list_path).unwrap_or_else(
+            |_| error!("Could not open list file '{}'.", list_path)));
 
         for l in ls.lines() {
             let line = l.unwrap().to_string();
@@ -47,7 +46,7 @@ pub fn main() {
         .args(&["-p8", "--reorder", "-x", &genome_path, "-f", "-U", "-" ])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped()).spawn()
-        .on_error("Could not start Bowtie process.");
+        .unwrap_or_else(|_| error!("Could not start Bowtie process."));
 
     let mut bowtie_in = BufWriter::new(bowtie.stdin.unwrap());
     let bowtie_out = BufReader::new(bowtie.stdout.unwrap());
@@ -56,7 +55,7 @@ pub fn main() {
         eprintln!("spawning a new thread for bowtie2!");
         eprintln!("Reading reference genome into memory...");
         let fasta = fasta::Reader::from_file(format!("{}.fa", &genome))
-    		.on_error(&format!("Genome FASTA file {}.fa could not be read.", &genome));
+    		.unwrap_or_else(|_| error!("Genome FASTA file {}.fa could not be read.", &genome));
         if !list_path.is_empty() {
             send_list_slices(fasta, &mut bowtie_in, list_pos, win_size);
         } else {
@@ -105,12 +104,11 @@ fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size:
             let endn = strt + win_size as usize;
             let read = seq.get(strt..endn).unwrap();
             // printing genome slice into 1-based co-ordinates
-            let mut window = String::new();
-            if sliding {
-                window  = ch.to_owned() + ":" + &strt.to_string();
+            let window = if sliding {
+                format!("{}:{}", ch, strt)
             } else {
-                window  = ch.to_owned() + ":" + &strt.to_string() + "-" + &endn.to_string();
-            }
+            	format!("{}:{}-{}", ch, strt, endn)
+            };
 
             //println!(">{}\n{}", &window, String::from_utf8(read.to_owned()).unwrap());
         	let _ = write!(aligner_in, ">{}:\n", &window);

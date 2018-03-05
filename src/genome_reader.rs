@@ -1,4 +1,4 @@
-use parse_args;
+use common::parse_args;
 use std::str;
 use std::fs::File;
 use std::process::exit;
@@ -10,13 +10,9 @@ use rust_htslib::bam;
 use rust_htslib::bam::{Records, Read};
 use rust_htslib::bam::record::{Cigar, Record};
 
-use ErrorHelper;
-
 pub struct RefGenomeReader {
-
 	filepath: String,
 	genome_reader: fasta::IndexedReader<File>,
-
 }
 
 impl RefGenomeReader {
@@ -25,7 +21,7 @@ impl RefGenomeReader {
 
         RefGenomeReader {
             filepath: genome_fasta_path.to_string(),
-            genome_reader: fasta::IndexedReader::from_file(&genome_fasta_path).on_error( &format!("Could not open genome FASTA file '{}'.", &genome_fasta_path))
+            genome_reader: fasta::IndexedReader::from_file(&genome_fasta_path).unwrap_or_else(|_| error!("Could not open genome FASTA file '{}'.", &genome_fasta_path))
         }
     }
 

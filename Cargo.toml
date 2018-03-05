@@ -16,8 +16,8 @@ ansi_term = "*"
 
 [[bin]]
 name = "fasta"
-path = "src/fasta/main.rs"
+path = "src/fasta_main.rs"
 
 [[bin]]
 name = "sam"
-path = "src/sam/main.rs"
+path = "src/sam_main.rs"

@@ -1,12 +1,11 @@
 
-use parse_args;
-use ErrorHelper;
+use common::parse_args;
 use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;
 use bio::io::bed;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   sam statistics [options] <bam_file>
 
@@ -25,13 +24,13 @@ pub fn main() {
 	let bam_path = args.get_str("<bam_file>");
 
 	let mut bam = bam::Reader::from_path(&bam_path)
-		.on_error("Could not open BAM file.");
+		.unwrap_or_else(|_| error!("Could not open BAM file {}.", &bam_path));
 	let bam_header = bam.header().clone();
 
 	let mut target_regions: Vec<Region> = Vec::new();
 	if args.get_str("--on-target").is_empty() == false {
 		let mut bed = bed::Reader::from_file(args.get_str("--on-target"))
-			.on_error("Cannot open BED file.");
+			.unwrap_or_else(|_| error!("Cannot open BED file."));
 		for r in bed.records() {
 			let record = r.unwrap();
 			target_regions.push(Region {

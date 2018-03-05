@@ -1,18 +1,14 @@
-use parse_args;
+use common::parse_args;
 use std::str;
-use std::env;
 use std::process::exit;
 use std::ascii::AsciiExt;
 use std::time::{Duration, Instant};
-
-use bio::io::fasta;
  
 use rust_htslib::bam;
 use rust_htslib::bam::{Records, Read};
 use rust_htslib::bam::record::{Cigar, CigarStringView, Record, Seq};
 
 use genome_reader::RefGenomeReader;
-use ErrorHelper;
 
 // Ref genome:
 // /home/annalam/homo_sapiens/hg38.fa
@@ -51,26 +47,24 @@ pub fn main() {
 	let genome_path = args.get_str("<ref_genome.fa>");
 	let bam_path = args.get_str("<bam_file>");
 	let debug = args.get_bool("--debug");	
-	let tail_length = args.get_str("--tail-length").parse::<usize>().on_error( "--tail-length requires a positive integer argument.");
-	let mut mm_treshold_ratio = args.get_str("--threshold").parse::<f32>().on_error( "--threshold requires a floating point number argument (default: 0.10).");
+	let tail_length = args.get_str("--tail-length").parse::<usize>().unwrap_or_else(|_| error!("--tail-length requires a positive integer argument."));
+	let mut mm_treshold_ratio = args.get_str("--threshold").parse::<f32>().unwrap_or_else(|_| error!( "--threshold requires a floating point number argument (default: 0.10)."));
 	let mismatches = args.get_str("--mismatches");
 
 
 	//Sanity checks
 	if tail_length < 1 {
-		eprintln!( "ERROR: --tail-length requires a positive integer argument.");
-		exit( -1);		
+		error!("--tail-length requires a positive integer argument.");
 	}
 
 	if !mismatches.is_empty() { 				
-		let mm	= mismatches.parse::<u32>().on_error( "--mismatches requires a positive integer argument.");
+		let mm	= mismatches.parse::<u32>().unwrap_or_else(|_| error!( "--mismatches requires a positive integer argument."));
 		mm_treshold_ratio = (mm as f32) / (tail_length as f32);
 		eprintln!( "INFO: Mismatch threshold ratio set to {:.2}", mm_treshold_ratio);
 	}
 
 	if mm_treshold_ratio < 0.0 || mm_treshold_ratio > 1.0 {
-		eprintln!( "ERROR: --threshold requires a floating point number between 0.0 and 1.0.");
-		exit( -1);
+		error!("--threshold requires a floating point number between 0.0 and 1.0.");
 	}
 
 	eprintln!( "INFO: {} mismatches in {} read tail bases will cause read to be discarded.", check_threshold( tail_length, mm_treshold_ratio), tail_length);
@@ -83,20 +77,19 @@ pub fn main() {
 	
 	let mut header = bam::header::Header::from_template( &header_view);
 	header.push_comment( &format!("Processed with discard tail artifacts (ver {}) TAIL_LEN:{} THRESHOLD:{:.1}", version, tail_length, mm_treshold_ratio).as_bytes()); //@CO
-	let mut out = bam::Writer::from_stdout( &header).on_error( "ERROR: Failed to create output stream.");
+	let mut out = bam::Writer::from_stdout( &header).unwrap_or_else(|_| error!("Failed to create output stream."));
 
 
 	let debug_filename = &bam_path.replace(".bam", "_tail_discards_debug.bam");
 
 	let mut discarded_out = if debug { 								
-								eprintln!("DEBUG: Writing discarded reads to file '{}'. (debug)", &debug_filename);
-								bam::Writer::from_path( &debug_filename, &bam::header::Header::from_template(&header_view))
-									.on_error(&format!("Cannot create file '{}'", &debug_filename))
-							}
-							else { 
-								bam::Writer::from_path( "/dev/null", &bam::header::Header::from_template(&header_view))
-									.on_error("Failed to create dummy bam::Writer.") 
-							};
+		eprintln!("DEBUG: Writing discarded reads to file '{}'. (debug)", &debug_filename);
+		bam::Writer::from_path( &debug_filename, &bam::header::Header::from_template(&header_view)).unwrap_or_else(
+			|_| error!("Cannot create file '{}'", &debug_filename))
+	} else { 
+		bam::Writer::from_path( "/dev/null", &bam::header::Header::from_template(&header_view)).unwrap_or_else(
+			|_| error!("Failed to create dummy bam::Writer.")) 
+	};
 
 
 	// Load the chromosome indices from FASTA file into memory. 
@@ -110,10 +103,9 @@ pub fn main() {
 	//have been aligned to
 	for tid in 0..header_view.target_names().len() {
 
-		let name = String::from_utf8( header_view.target_names()[ tid].to_vec())
-						.on_error("Failed to read target names.");
+		let name = String::from_utf8( header_view.target_names()[ tid].to_vec()).unwrap_or_else(|_| error!("Failed to read target names."));
 		let chr_len = header_view.target_len( tid as u32)
-						.on_error("Failed to read target length.") as usize;
+			.unwrap_or_else(|| error!("Failed to read target length.")) as usize;
 
 		chr_names.push( name);
 		chr_lens.push( chr_len);
@@ -146,7 +138,7 @@ pub fn main() {
 		if read.is_unmapped() { //read.is_secondary() || read.is_supplementary
 
 			//Unmapped reads have tid() == -1
-			out.write( &read).on_error( "Failed to write output stream.");
+			out.write( &read).unwrap_or_else(|_| error!("Failed to write output stream."));
 			continue;
 		}
 
@@ -160,7 +152,9 @@ pub fn main() {
 				//eprintln!( "CHR name:'{}'", &chr_names[ chr_index]);
 			}
 
-			if chr_index >= chr_names.len(){ panic!("Chromosome index error!"); }
+			if chr_index >= chr_names.len() {
+				error!("Chromosome index error!");
+			}
 			chr_seq = ref_genome_reader.load_chromosome_seq( &chr_names[ chr_index]);
 		}
 
@@ -203,18 +197,18 @@ pub fn main() {
 			//if only passed reads are outputted
 			//read.set_quality_check_failed(); 
 			records_failed += 1;
-			if debug { discarded_out.write( &read).on_error( "Failed to write debug output"); }
+			if debug { discarded_out.write( &read).unwrap_or_else(|_| error!( "Failed to write debug output")); }
 			//eprintln!( "DISCARDING: {}, read: {}-{}", &chr_names[ chr_index], read.pos(), read.pos() + read.seq().len() as i32);
 		}
 		else if right_tail_mm_ratio >= mm_treshold_ratio {
 			records_failed += 1;
 			//read.set_quality_check_failed();
-			if debug { discarded_out.write( &read).on_error( "Failed to write debug output"); }
+			if debug { discarded_out.write( &read).unwrap_or_else(|_| error!("Failed to write debug output")); }
 			//eprintln!( "DISCARDING: {}, read: {}-{}", &chr_names[ chr_index], read.pos(), read.pos() + read.seq().len() as i32);
 		}
 		else {
 			records_passed += 1;
-			out.write( &read).on_error( "Failed to write output stream.");			
+			out.write( &read).unwrap_or_else(|_| error!("Failed to write output stream."));			
 		}
 
 		if debug {

@@ -1,5 +1,5 @@
 
-use parse_args;
+use common::parse_args;
 use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::record::Record;
@@ -42,7 +42,7 @@ pub fn main() {
 	let debug = args.get_bool("--debug");
 
 	let mut bam = bam::Reader::from_path(&bam_path)
-		.expect(&format!("Cannot open BAM file {}", bam_path));
+		.unwrap_or_else(|_| error!("Cannot open BAM file {}", bam_path));
 	let header = bam.header().clone();
 
 	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(&header)).unwrap();

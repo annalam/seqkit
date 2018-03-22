@@ -9,7 +9,7 @@ use std::env;
 
 #[macro_use] mod common;
 mod fasta_to_raw; mod fasta_trim_by_quality; mod fasta_mask_by_quality;
-mod fasta_mappability_track;
+mod fasta_mappability_track; mod fasta_barcode_to_header;
 mod fasta_demultiplex;
 
 const USAGE: &str = "
@@ -18,6 +18,7 @@ Usage:
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
+  fasta barcode to header <fastq_file> <barcode_file>
   fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
 ";
 
@@ -34,6 +35,8 @@ fn main() {
 		fasta_mask_by_quality::main();
     } else if args.len() >= 3 && args[1..3] == ["mappability", "track"] {
 		fasta_mappability_track::main();
+	} else if args.len() >= 4 && args[1..4] == ["barcode", "to", "header"] {
+		fasta_barcode_to_header::main();
 	} else if args.len() >= 2 && args[1] == "demultiplex" {
 		fasta_demultiplex::main();
 	} else {

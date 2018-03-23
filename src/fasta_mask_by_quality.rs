@@ -1,7 +1,6 @@
 
-use common::{parse_args, read_buffered, AsciiBufRead};
+use common::{parse_args, FileReader};
 use std::str;
-use std::process::exit;
 use ascii::{AsciiString, AsciiChar};
 
 const USAGE: &'static str = "
@@ -11,13 +10,13 @@ Usage:
 
 pub fn main() {
 	let args = parse_args(USAGE);
-	let mut fasta_file = read_buffered(&args.get_str("<fastq_file>"));
+	let mut fasta_file = FileReader::new(&args.get_str("<fastq_file>"));
 	let min_baseq: i32 = args.get_str("<min_baseq>").parse().unwrap();
 
 	let mut line = AsciiString::new();
 	while fasta_file.read_ascii_line(&mut line) {
 		if line[0] != '@' {
-			eprintln!("Invalid FASTQ format encountered."); exit(-1);
+			error!("Invalid FASTQ format encountered.");
 		}
 		print!("{}", line);
 		fasta_file.read_ascii_line(&mut line);

@@ -1,17 +1,17 @@
 
-use common::{parse_args, read_buffered, AsciiBufRead};
+use common::{parse_args, FileReader};
 use std::str;
 use std::process::exit;
 use ascii::AsciiString;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   fasta to raw <fasta_file>
 ";
 
 pub fn main() {
 	let args = parse_args(USAGE);
-	let mut fasta_file = read_buffered(&args.get_str("<fasta_file>"));
+	let mut fasta_file = FileReader::new(&args.get_str("<fasta_file>"));
 
 	let mut line = AsciiString::new();
 	while fasta_file.read_ascii_line(&mut line) {

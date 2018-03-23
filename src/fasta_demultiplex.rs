@@ -1,10 +1,7 @@
 
-use common::{parse_args, read_buffered, AsciiBufRead};
+use common::{parse_args, read_buffered, AsciiBufRead, GzipWriter};
 use std::io::{BufRead, Write};
 use std::str;
-use std::fs::File;
-use flate2::write::GzEncoder;
-use flate2::Compression;
 
 const USAGE: &str = "
 Usage:
@@ -13,8 +10,8 @@ Usage:
 
 struct Sample {
 	barcode: String,
-	output1: GzEncoder<File>,
-	output2: GzEncoder<File>
+	output1: GzipWriter,
+	output2: GzipWriter
 }
 
 pub fn main() {
@@ -32,10 +29,8 @@ pub fn main() {
 		let name = cols[0];
 		samples.push(Sample {
 			barcode: cols[1].into(),
-			output1: GzEncoder::new(File::create(
-				format!("{}_1.fq.gz", name)).unwrap(), Compression::default()),
-			output2: GzEncoder::new(File::create(
-				format!("{}_2.fq.gz", name)).unwrap(), Compression::default())
+			output1: GzipWriter::new(&format!("{}_1.fq.gz", name)),
+			output2: GzipWriter::new(&format!("{}_2.fq.gz", name))
 		});
 	}
 

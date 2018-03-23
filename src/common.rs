@@ -1,6 +1,9 @@
 
 use docopt::{Docopt, ArgvMap};
-use std::io::{stdin, BufRead, BufReader};
+use std::process::{Command, Stdio, ChildStdin};
+use std::fmt::Arguments;
+use std;
+use std::io::{stdin, BufRead, BufReader, Write};
 use std::fs::File;
 use flate2::read::MultiGzDecoder;
 use std::mem;
@@ -32,6 +35,30 @@ pub fn read_buffered(path: &str) -> Box<BufRead> {
 		}
 	}
 }
+
+pub struct GzipWriter {
+	//gzip: Child
+	gzip: ChildStdin
+}
+
+impl GzipWriter {
+	pub fn new(path: &str) -> GzipWriter {
+		let file = File::create(path).unwrap_or_else(
+			|_| error!("Cannot open file {} for writing.", path));
+		GzipWriter {
+			gzip: Command::new("gzip").arg("-c")
+				.stdin(Stdio::piped()).stdout(file).spawn()
+				.unwrap_or_else(|_| error!("Cannot start gzip process."))
+				.stdin.unwrap()
+		}
+	}
+
+	pub fn write_fmt(&mut self, fmt: Arguments) -> std::io::Result<()> {
+		self.gzip.write_fmt(fmt)
+	}
+}
+
+
 
 // Helper method for reading ASCII format files
 pub trait AsciiBufRead {

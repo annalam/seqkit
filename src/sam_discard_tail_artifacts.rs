@@ -19,21 +19,24 @@ Usage:
   sam discard tail artifacts --test
 
 Options:  
-  --tail-length=N      The tail length of the read that is examined [default: 20].
-                       The tail length specifies the number of bases that are examined from each 
-                       end of the read. Indels encountered do not affect this number.
-  --threshold=FLOAT    Threshold ratio (0.0-1.0, inclusive) of variations that will cause the
-                       read to be discarded [default: 0.15].
-  --mismatches=N       Number of mismatches (inclusive) in a tail that will cause the read to be discarded.
-                       This number will be converted to a threshold ratio.
-  --debug              Print information and save discarded reads to a separate file.
-  --test               Run tests and exit.
+  --tail-length=N    The tail length of the read that is examined [default: 20].
+                     The tail length specifies the number of bases that are 
+                     examined from each end of the read. Indels encountered do
+                     not affect this number.
+  --threshold=FLOAT  Threshold ratio (0.0-1.0, inclusive) of variations that
+                     will cause the read to be discarded [default: 0.15].
+  --mismatches=N     Number of mismatches (inclusive) in a tail that will cause 
+                     the read to be discarded.
+                     This number will be converted to a threshold ratio.
+  --debug            Print information and save discarded reads to a separate 
+                     file.
+  --test             Run tests and exit.
 
 Description:
 
-This script processes all the reads in a bam-file and removes reads that have a number of mismatching
-bases in the tails (ends) of the reads that is above the specified threshold ratio. Output (new bam file) 
-is written to stdout.
+This script processes all the reads in a bam-file and removes reads that have 
+a number of mismatching bases in the tails (ends) of the reads that is above 
+the specified threshold ratio. Output (new bam file) is written to stdout.
 
 ";
 

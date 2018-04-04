@@ -11,6 +11,7 @@ flate2 = "*"
 ascii = "*"
 num-traits = "0.1.40"
 ansi_term = "*"
+regex = "*"
 
 
 

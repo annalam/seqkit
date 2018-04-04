@@ -2,6 +2,7 @@
 use common::{parse_args, FileReader, GzipWriter};
 use std::io::Write;
 use std::str;
+use regex::Regex;
 
 const USAGE: &str = "
 Usage:
@@ -19,6 +20,8 @@ pub fn main() {
 	let mut sample_sheet = FileReader::new(&args.get_str("<sample_sheet>"));
 	let mut fastq1 = FileReader::new(&args.get_str("<fastq_1>"));
 	let mut fastq2 = FileReader::new(&args.get_str("<fastq_2>"));
+
+	let barcode_regex = Regex::new(r" SI:[^ ]+").unwrap();
 
 	// Read the user-provided sample sheet into memory.
 	let mut samples = Vec::new();
@@ -47,9 +50,22 @@ pub fn main() {
 
 	let mut line1 = String::new();
 	let mut line2 = String::new();
+	let mut barcode = String::new();
 	while fastq1.read_line(&mut line1) && fastq2.read_line(&mut line2) {
 		if line1.starts_with('@') && line2.starts_with('@') {
-			let barcode = line1.split(':').last().unwrap().trim().to_string();
+
+			// Find the sample barcode, formatted as SI:xxxx.
+			// Then remove it from the header.
+			// TODO: Allow user to choose if SI:xxxx should be removed.
+			let (start, end) = {
+				let hit = &barcode_regex.find(&line1)
+					.unwrap_or_else(|| error!("No SI:xxxx field found."));
+				(hit.start(), hit.end())
+			};
+			barcode.clear();
+			barcode += &line1[(start+4)..end];
+			line1.drain(start..end);
+
 			if let Some(sample) = samples.iter_mut()
 				.find(|s| barcode_matches(&barcode, &s.barcode)) {
 
@@ -82,7 +98,9 @@ pub fn main() {
 }
 
 fn barcode_matches(observed: &str, provided: &str) -> bool {
-	assert!(observed.len() == provided.len());
+	if observed.len() != provided.len() {
+		error!("Barcode {} is of unexpected length.", observed);
+	}
 	observed.chars().zip(provided.chars()).all(|x| x.0 == x.1 || x.1 == 'N')
 }
 

@@ -9,13 +9,15 @@ extern crate regex;
 use std::env;
 
 #[macro_use] mod common;
-mod fasta_to_raw; mod fasta_trim_by_quality; mod fasta_mask_by_quality;
+mod fasta_to_raw; mod fasta_simplify_read_ids;
+mod fasta_trim_by_quality; mod fasta_mask_by_quality;
 mod fasta_mappability_track; mod fasta_add_barcode;
 mod fasta_demultiplex;
 
 const USAGE: &str = "
 Usage:
   fasta to raw <fasta/fastq>
+  fasta simplify read ids <fastq_file>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
@@ -30,6 +32,8 @@ fn main() {
 
 	if args.len() >= 3 && args[1..3] == ["to", "raw"] {
 		fasta_to_raw::main();
+	} else if args.len() >= 4 && args[1..4] == ["simplify", "read", "ids"] {
+		fasta_simplify_read_ids::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
 		fasta_trim_by_quality::main();
 	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {

@@ -21,12 +21,13 @@ pub fn main() {
 	let mut fastq1 = FileReader::new(&args.get_str("<fastq_1>"));
 	let mut fastq2 = FileReader::new(&args.get_str("<fastq_2>"));
 
-	let barcode_regex = Regex::new(r" SI:[^ ]+").unwrap();
+	let barcode_regex = Regex::new(r" SI:[ACGTNacgtn]+").unwrap();
 
 	// Read the user-provided sample sheet into memory.
 	let mut samples = Vec::new();
 	let mut line = String::new();
 	while sample_sheet.read_line(&mut line) {
+		if line.starts_with('#') { continue; }
 		let cols: Vec<&str> = line.trim().split('\t').collect();
 		if cols.len() < 2 { continue; }
 		let name = cols[0];
@@ -65,6 +66,14 @@ pub fn main() {
 			barcode.clear();
 			barcode += &line1[(start+4)..end];
 			line1.drain(start..end);
+
+			// Remove SI:xxxx field from the second mate as well (if present).
+			let (start, end) = if let Some(hit) = barcode_regex.find(&line2) {
+				(hit.start(), hit.end())
+			} else {
+				(0, 0)
+			};
+			if end > 0 { line2.drain(start..end); }
 
 			if let Some(sample) = samples.iter_mut()
 				.find(|s| barcode_matches(&barcode, &s.barcode)) {

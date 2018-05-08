@@ -12,6 +12,7 @@ use std::env;
 mod sam_count; mod sam_fragments; mod sam_fragment_lengths; mod sam_statistics;
 mod sam_coverage_histogram; mod sam_trim_qnames;
 mod sam_mark_duplicates; mod sam_discard_tail_artifacts;
+mod sam_to_fastq;
 mod genome_reader;
 
 const USAGE: &str = "
@@ -24,6 +25,7 @@ Usage:
   sam mark duplicates <bam_file>
   sam trim qnames <bam_file>
   sam discard tail artifacts <ref_genome.fa> <bam_file>
+  sam to fastq <bam_file> <out_prefix>
 ";
 
 fn main() {
@@ -47,6 +49,8 @@ fn main() {
 		sam_trim_qnames::main();
 	} else if args.len() >= 4 && args[1..4] == ["discard", "tail", "artifacts"] {
 		sam_discard_tail_artifacts::main();
+	} else if args.len() >= 3 && args[1..3] == ["to", "fastq"] {
+		sam_to_fastq::main();
 	} else {
 		error!("Invalid or missing module selection.\n{}", USAGE);
 	}

@@ -5,7 +5,7 @@ authors = ["Matti Annala <matti.annala@uta.fi>"]
 
 [dependencies]
 docopt = "*"
-bio = "*"
+bio = "0.17"
 rust-htslib = "0.15.0"
 flate2 = "*"
 ascii = "*"

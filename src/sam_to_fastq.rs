@@ -61,6 +61,8 @@ pub fn main() {
 	let mut reads_1: HashMap<String, Box<str>> = HashMap::new();
 	let mut reads_2: HashMap<String, Box<str>> = HashMap::new();
 
+	let mut total_reads = 0;
+
 	for r in bam.records() {
 		let mut read = r.unwrap_or_else(
 			|_| error!("Input BAM file ended prematurely."));
@@ -69,18 +71,21 @@ pub fn main() {
 		let qname = str::from_utf8(read.qname()).unwrap();
 
 		if read.is_paired() == false {
-			write!(fastq_single, ">{}\n{}\n", qname, sequence(&read));
+			total_reads += 1;
+			write!(fastq_single, ">{}\n{}\n", total_reads, sequence(&read));
 		} else if read.is_first_in_template() {
 			if let Some(mate_seq) = reads_2.remove(qname) {
-				write!(fastq_1, ">{}\n{}\n", qname, sequence(&read));
-				write!(fastq_2, ">{}\n{}\n", qname, mate_seq);
+				total_reads += 1;
+				write!(fastq_1, ">{}\n{}\n", total_reads, sequence(&read));
+				write!(fastq_2, ">{}\n{}\n", total_reads, mate_seq);
 			} else {
 				reads_1.insert(qname.into(), sequence(&read).into());
 			}
 		} else if read.is_last_in_template() {
 			if let Some(mate_seq) = reads_1.remove(qname) {
-				write!(fastq_1, ">{}\n{}\n", qname, mate_seq);
-				write!(fastq_2, ">{}\n{}\n", qname, sequence(&read));
+				total_reads += 1;
+				write!(fastq_1, ">{}\n{}\n", total_reads, mate_seq);
+				write!(fastq_2, ">{}\n{}\n", total_reads, sequence(&read));
 			} else {
 				reads_2.insert(qname.into(), sequence(&read).into());
 			}

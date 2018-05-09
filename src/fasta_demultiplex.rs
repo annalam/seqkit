@@ -10,6 +10,7 @@ Usage:
 ";
 
 struct Sample {
+	name: String,
 	barcode: String,
 	output1: GzipWriter,
 	output2: GzipWriter
@@ -32,10 +33,20 @@ pub fn main() {
 		if cols.len() < 2 { continue; }
 		let name = cols[0];
 		samples.push(Sample {
+			name: name.into(),
 			barcode: cols[1].into(),
 			output1: GzipWriter::new(&format!("{}_1.fq.gz", name)),
 			output2: GzipWriter::new(&format!("{}_2.fq.gz", name))
 		});
+	}
+
+	// Check that sample sheet did not contain samples with identical names.
+	for s in 0..samples.len() {
+		for k in s+1..samples.len() {
+			if samples[s].name == samples[k].name {
+				error!("Sample {} is listed multiple times in sample sheet.", samples[s].name);
+			}
+		}
 	}
 
 	/*let barcode_len = 8;

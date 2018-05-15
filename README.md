@@ -1,20 +1,6 @@
 # Seqkit
 
-Seqkit is a suite of software utilities for manipulating and analyzing common genome sequencing data types (FASTA, SAM). Seqkit is written in Rust, and uses rust-htslib for reading and writing BAM files. Seqkit is divided into two utilities: `fasta` and `sam`. Each utility provides various useful subcommands - for a complete listing type the command name without arguments into your shell:
-```
-$ fasta
-
-Usage:
-  fasta to raw <fasta/fastq>
-  fasta simplify read ids <fastq_file>
-  fasta trim by quality <fastq_file> <min_baseq>
-  fasta mask by quality <fastq_file> <min_baseq>
-  fasta mappability track <genome>
-  fasta add barcode <fastq_file> <barcode_file> <barcode_format>
-  fasta convert basespace <fastq_file>
-  fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
-  fasta statistics <fastq_file>
-```
+Seqkit is a suite of software utilities for manipulating and analyzing common genome sequencing data types (FASTA, SAM). Seqkit is written in Rust, and uses rust-htslib for reading and writing BAM files. Seqkit is divided into two utilities: `fasta` and `sam`. Each utility provides various useful subcommands. For a complete listing type the command name without arguments into your shell.
 
 
 Examples

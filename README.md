@@ -1,61 +1,26 @@
-# seqkit
+# Seqkit
 
-**Bioinformatics sequence manipulation utilities written in Rust**
-
-**Dependencies**
-
-Install [Rust](https://www.rust-lang.org/en-US/)
-
-**Installation**
-
-  ```sh
-    git clone https://github.com/annalam/seqkit.git
-    cd seqkit
-    cargo install --root=/your/tools/path/seqkit
-  ```
-
-
-sam
-===
-
-**utils for working with SAM, BAM and CRAM files**
+Seqkit is a suite of software utilities for manipulating and analyzing common genome sequencing data types (FASTA, SAM). Seqkit is written in Rust, and uses rust-htslib for reading and writing BAM files. Seqkit is divided into two utilities: `fasta` and `sam`. Each utility provides various useful subcommands - for a complete listing type the command name without arguments into your shell:
+```
+$ fasta
 
 Usage:
- ```sh
-  sam count <bam_file> <regions.bed>
-  sam fragments <bam_file>
-  sam fragment lengths <bam_file>
-  sam statistics <bam_file>
-  sam mark duplicates <bam_file>
-
- ```
-
-fasta
-=====
-**utils for working with FASTA and FASTQ files**
-
-Usage:
-```sh
   fasta to raw <fasta/fastq>
+  fasta simplify read ids <fastq_file>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
+  fasta add barcode <fastq_file> <barcode_file> <barcode_format>
+  fasta convert basespace <fastq_file>
+  fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
+  fasta statistics <fastq_file>
 ```
 
-**fasta mappability track**
 
-Usage:
-```sh
-  fasta mappability track [options] <genome>
+Examples
+--------
 
- Options:
-    --win-size=N     window size for bowtie aligment (4-1024) [default: 48]
-    --sliding        enable sliding window mode
+Extract UMIs and demultiplex Illumina sequencing data where both the sample barcode and UMI are stored in the adapter:
 ```
-
-- Building mappability track for a given reference genome in FASTA format
-- Moving windows of sequence slices aligned against the genome `default`
-- `--sliding` will enable sliding window mode (`will take longer time`)
-- Bowtie1 is used for alignment
-- window size can be adjusted at running time with `--win-size`
-- window size can range from `4` to `1024` (limitation by `bowtie1`)
+fasta demultiplex sample_sheet.tsv <(fasta simplify read ids multiplexed_R1.fq.gz | fasta add barcode multiplexed_R1.fq.gz multiplexed_I1.fq.gz UUUUSSSS) <(fasta simplify read ids multiplexed_R2.fq.gz | fasta add barcode - multiplexed_I1.fq.gz UUUUSSSS)
+```

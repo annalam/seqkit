@@ -18,6 +18,14 @@ For BAM files, Seqkit can:
 - Calculate statistics about unaligned, aligned and duplicate-flagged reads
 - Extract reads from position-sorted, name-sorted or unsorted BAM files
 
+Installation
+------------
+
+Install Rust (version 1.24 or later). Download the Seqkit source code from Github, then run the following command to install the binaries:
+```
+cargo install --path <seqkit_source_directory>
+```
+
 Examples
 --------
 

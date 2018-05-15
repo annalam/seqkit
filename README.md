@@ -22,5 +22,9 @@ Examples
 
 Extract UMIs and demultiplex Illumina sequencing data where both the sample barcode and UMI are stored in the adapter:
 ```
-fasta demultiplex sample_sheet.tsv <(fasta simplify read ids multiplexed_R1.fq.gz | fasta add barcode multiplexed_R1.fq.gz multiplexed_I1.fq.gz UUUUSSSS) <(fasta simplify read ids multiplexed_R2.fq.gz | fasta add barcode - multiplexed_I1.fq.gz UUUUSSSS)
+fasta demultiplex sample_sheet.tsv
+  <(fasta simplify read ids multiplexed_R1.fq.gz |
+    fasta add barcode multiplexed_R1.fq.gz multiplexed_I1.fq.gz UUUUSSSS)
+  <(fasta simplify read ids multiplexed_R2.fq.gz |
+    fasta add barcode - multiplexed_I1.fq.gz UUUUSSSS)
 ```

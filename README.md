@@ -2,6 +2,21 @@
 
 Seqkit is a suite of software utilities for manipulating and analyzing common genome sequencing data types (FASTA, SAM). Seqkit is written in Rust, and uses rust-htslib for reading and writing BAM files. Seqkit is divided into two utilities: `fasta` and `sam`. Each utility provides various useful subcommands. For a complete listing type the command name without arguments into your shell.
 
+Features
+--------
+
+For FASTA/FASTQ files, Seqkit can:
+- Convert between FASTA, FASTQ and raw sequence-per-line formats
+- Extract sample barcodes and UMIs from multiplexed FASTQ sequencing data
+- Demultiplex FASTQ sequencing data
+- Trim FASTQ sequencing data by per-base quality (BASEQ) values
+- Mask low quality bases in FASTQ sequencing data
+- Replace FASTQ read identifiers with compact numeric IDs
+
+For BAM files, Seqkit can:
+- Calculate a histogram of fragment lengths
+- Calculate statistics about unaligned, aligned and duplicate-flagged reads
+- Extract reads from position-sorted, name-sorted or unsorted BAM files
 
 Examples
 --------

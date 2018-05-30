@@ -27,19 +27,6 @@ fn sequence(read: &Record) -> String {
 	ret
 }
 
-/*impl fmt::Display for Record {
-	fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-		let seq = self.seq();
-		//let qual = self.qual();
-		for k in 0..seq.len() {
-			write!(f, "{}", match seq.encoded_base(k) {
-				1 => 'A', 2 => 'C', 4 => 'G', 8 => 'T', _ => 'N'
-			});
-		}
-		Ok()
-	}
-}*/
-
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");

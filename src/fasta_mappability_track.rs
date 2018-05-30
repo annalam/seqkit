@@ -6,25 +6,23 @@ use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::fs::File;
 use bio::io::fasta;
-use num_traits::float::Float;
 
 const USAGE: &'static str = "
 Usage:
   fasta mappability track [options] <genome>
 
- Options:
-    --win-size=N    window size for bowtie alignment (4-1024) [default: 48]
-    --sliding       enable sliding window mode
-    --list=PATH     File containing list of chromosome positions
+Options:
+  --win-size=N    window size for bowtie alignment (4-1024) [default: 48]
+  --sliding       enable sliding window mode
+  --list=PATH     File containing list of chromosome positions
 ";
-
 
 pub fn main() {
     let args = parse_args(USAGE);
-    let genome_path     = args.get_str("<genome>");
+    let genome_path = args.get_str("<genome>");
     let win_size: usize = args.get_str("--win-size").parse().unwrap();
-    let sliding         = args.get_bool("--sliding");
-    let list_path       = args.get_str("--list").to_owned();
+    let sliding = args.get_bool("--sliding");
+    let list_path = args.get_str("--list").to_owned();
 
     let genome = genome_path.to_owned();
 
@@ -72,7 +70,7 @@ pub fn main() {
             let mut window = cols[0].to_string().replace(":", "\t");
                 window = window.replace("-", "\t");
             let mapq: f64 = cols[4].parse::<f64>().unwrap();
-            let mappability = format!("{:.*}", 3, 1.0 - (10.0).powf(-mapq/10.0));
+            let mappability = format!("{:.*}", 3, 1.0 - (10f64).powf(-mapq / 10.0));
 
             println!("{}\t{}", &window.trim_right_matches(':'), &mappability);
         } else { continue  }

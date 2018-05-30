@@ -4,16 +4,11 @@ version = "0.1.0"
 authors = ["Matti Annala <matti.annala@uta.fi>"]
 
 [dependencies]
-docopt = "*"
-bio = "0.17"
-rust-htslib = "0.15.0"
-flate2 = "*"
-ascii = "*"
-num-traits = "0.1.40"
-ansi_term = "*"
-regex = "*"
-
-
+docopt = "1.0"
+bio = "0.19"
+rust-htslib = "0.15"
+ascii = "0.9"
+regex = "1.0"
 
 [[bin]]
 name = "fasta"

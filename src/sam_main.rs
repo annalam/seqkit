@@ -21,7 +21,8 @@ Usage:
   sam statistics <bam_file>
   sam mark duplicates <bam_file>
   sam trim qnames <bam_file>
-  sam to fastq <bam_file> <out_prefix>
+  sam to raw <bam_file> <out_prefix>
+  sam to fasta <bam_file> <out_prefix>
 ";
 
 fn main() {
@@ -45,7 +46,8 @@ fn main() {
 		sam_trim_qnames::main();
 	/*} else if args.len() >= 4 && args[1..4] == ["discard", "tail", "artifacts"] {
 		sam_discard_tail_artifacts::main();*/
-	} else if args.len() >= 3 && args[1..3] == ["to", "fastq"] {
+	} else if args.len() >= 3 && args[1] == "to" &&
+		(args[2] == "raw" || args[2] == "fasta") {
 		sam_to_fastq::main();
 	} else {
 		eprintln!("{}", USAGE);

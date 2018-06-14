@@ -4,7 +4,7 @@ use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   sam fragment lengths [options] <bam_file>
 

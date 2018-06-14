@@ -20,6 +20,23 @@ pub fn parse_args(usage: &str) -> ArgvMap {
 	})
 }
 
+pub trait PathArgs {
+	fn get_path(&self, arg: &str) -> String;
+}
+
+impl PathArgs for ArgvMap {
+	fn get_path(&self, arg: &str) -> String {
+		let path = self.get_str(arg);
+		// TODO: Check path validity?
+		if path.starts_with('~') {
+			if let Some(home) = std::env::home_dir() {
+				return format!("{}{}", home.display(), &path[1..]);
+			}
+		}
+		path.into()
+	}
+}
+
 pub struct GzipWriter {
 	//gzip: Child
 	gzip: ChildStdin

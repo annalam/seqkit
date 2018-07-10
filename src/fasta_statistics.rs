@@ -14,14 +14,14 @@ pub fn main() {
 	let args = parse_args(USAGE);
 	let mut fastq = FileReader::new(&args.get_str("<fastq_file>"));
 
-	let sample_barcode_regex = Regex::new(r" SI:[ACGTNacgtn]+").unwrap();
+	let sample_barcode_regex = Regex::new(r" BC:[ACGTNacgtn]+").unwrap();
 
 	let mut total_records: u64 = 0;
 	let mut sample_barcodes: HashMap<String, u64> = HashMap::new();
 
 	let mut line = String::new();
 	while fastq.read_line(&mut line) {
-		// Find the sample barcode, formatted as SI:xxxx.
+		// Find the sample barcode, formatted as BC:xxxx.
 		if let Some(hit) = sample_barcode_regex.find(&line) {
 			let sample_barcode = line[hit.start()+4..hit.end()].to_string();
 			*sample_barcodes.entry(sample_barcode).or_insert(0) += 1;

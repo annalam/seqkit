@@ -9,6 +9,7 @@ bio = "0.19"
 rust-htslib = "0.15"
 ascii = "0.9"
 regex = "1.0"
+rand = "0.5"
 
 [[bin]]
 name = "fasta"

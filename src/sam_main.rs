@@ -24,6 +24,7 @@ Usage:
   sam trim qnames <bam_file>
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
+  sam to fastq <bam_file> <out_prefix>
   sam subsample <bam_file> <fraction>
 ";
 
@@ -49,7 +50,7 @@ fn main() {
 	/*} else if args.len() >= 4 && args[1..4] == ["discard", "tail", "artifacts"] {
 		sam_discard_tail_artifacts::main();*/
 	} else if args.len() >= 3 && args[1] == "to" &&
-		(args[2] == "raw" || args[2] == "fasta") {
+		(args[2] == "raw" || args[2] == "fasta" || args[2] == "fastq") {
 		sam_to_fastq::main();
 	} else if args.len() >= 2 && args[1] == "subsample" {
 		sam_subsample::main();

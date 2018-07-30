@@ -10,10 +10,11 @@ const USAGE: &str = "
 Usage:
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
+  sam to fastq <bam_file> <out_prefix>
 ";
 
-#[derive(PartialEq)]
-enum OutputFormat { RAW, FASTA }
+#[derive(PartialEq, Clone, Copy)]
+enum OutputFormat { RAW, FASTA, FASTQ }
 use self::OutputFormat::*;
 
 fn sequence(read: &Record, min_baseq: u8) -> String {
@@ -55,6 +56,7 @@ pub fn main() {
 	// TODO: Consider making this function generic over the output format.
 	let output_format = if args.get_bool("raw") { RAW }
 		else if args.get_bool("fasta") { FASTA }
+		else if args.get_bool("fastq") { FASTQ }
 		else { error!("Invalid output format."); };
 
 	let mut bam = if bam_path == "-" {
@@ -64,7 +66,9 @@ pub fn main() {
 			|_| error!("Cannot open BAM file '{}'", bam_path))
 	};
 
-	let extension = match output_format { RAW => "seq", FASTA => "fa" };
+	let extension = match output_format {
+		RAW => "seq", FASTA => "fa", FASTQ => "fq"
+	};
 	let mut out_1 = GzipWriter::new(&format!("{}_1.{}.gz", out_prefix, extension));
 	let mut out_2 = GzipWriter::new(&format!("{}_2.{}.gz", out_prefix, extension));
 	let mut out_single = GzipWriter::new(&format!("{}.{}.gz", out_prefix, extension));
@@ -78,34 +82,43 @@ pub fn main() {
 		if read.is_secondary() || read.is_supplementary() { continue; }
 
 		let qname = str::from_utf8(read.qname()).unwrap();
-		let read_seq = sequence(&read, 10);
+		let mut read_seq = sequence(&read, 10);
+
+		if output_format == FASTQ {
+			read_seq.push('|');
+			for baseq in read.qual() {
+				read_seq.push(char::from(33 + baseq));
+			}
+		}
 
 		if read.is_paired() == false {
 			write!(out_single, ">{}\n{}\n", qname, read_seq);
 		} else if read.is_first_in_template() {
 			if let Some(mate_seq) = reads_2.remove(qname) {
-				if output_format == FASTA {
-					write!(out_1, ">{}\n{}\n", qname, read_seq);
-					write!(out_2, ">{}\n{}\n", qname, mate_seq);
-				} else if output_format == RAW {
-					write!(out_1, "{}\n", read_seq);
-					write!(out_2, "{}\n", mate_seq);
-				}
+				write_read(&mut out_1, output_format, qname, &read_seq);
+				write_read(&mut out_2, output_format, qname, &mate_seq);
 			} else {
 				reads_1.insert(qname.into(), read_seq.into());
 			}
 		} else if read.is_last_in_template() {
 			if let Some(mate_seq) = reads_1.remove(qname) {
-				if output_format == FASTA {
-					write!(out_1, ">{}\n{}\n", qname, mate_seq);
-					write!(out_2, ">{}\n{}\n", qname, read_seq);
-				} else if output_format == RAW {
-					write!(out_1, "{}\n", read_seq);
-					write!(out_2, "{}\n", mate_seq);
-				}
+				write_read(&mut out_1, output_format, qname, &mate_seq);
+				write_read(&mut out_2, output_format, qname, &read_seq);
 			} else {
 				reads_2.insert(qname.into(), read_seq.into());
 			}
 		}
+	}
+}
+
+fn write_read(out: &mut GzipWriter, format: OutputFormat, qname: &str,
+	seq: &str) {
+	if format == FASTQ {
+		let seq_len = (seq.len() - 1) / 2;
+		write!(out, "@{}\n{}\n+\n{}\n", qname, &seq[0..seq_len], &seq[seq_len+1..]);
+	} else if format == FASTA {
+		write!(out, ">{}\n{}\n", qname, seq);
+	} else if format == RAW {
+		write!(out, "{}\n", seq);
 	}
 }

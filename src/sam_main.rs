@@ -2,7 +2,6 @@
 extern crate docopt;
 extern crate bio;
 extern crate rust_htslib;
-extern crate ascii;
 extern crate rand;
 
 use std::env;

@@ -5,7 +5,6 @@ use std::fmt::Arguments;
 use std;
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::fs::File;
-use ascii::AsciiString;
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -90,9 +89,9 @@ impl FileReader {
 		}
 	}
 
-	pub fn read_ascii_line(&mut self, line: &mut AsciiString) -> bool {
+	/*pub fn read_ascii_line(&mut self, line: &mut AsciiString) -> bool {
 		line.clear();
 		let v = unsafe { std::mem::transmute::<&mut AsciiString, &mut Vec<u8>>(line) };
 		self.bufread.read_until(b'\n', v).unwrap() > 0
-	}
+	}*/
 }

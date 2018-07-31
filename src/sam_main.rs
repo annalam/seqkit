@@ -22,10 +22,12 @@ Usage:
   sam statistics <bam_file>
   sam mark duplicates <bam_file>
   sam trim qnames <bam_file>
+  sam subsample <bam_file> <fraction>
+
+Extract reads from BAM files:
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
   sam to fastq <bam_file> <out_prefix>
-  sam subsample <bam_file> <fraction>
 ";
 
 fn main() {

@@ -11,6 +11,15 @@ Usage:
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
   sam to fastq <bam_file> <out_prefix>
+
+These commands convert BAM files into FASTQ, FASTA, or raw sequence-per-line
+format. Both name-sorted and position-sorted BAM files are supported,
+but memory usage can reach several GB for position-sorted BAM files.
+
+Output is written into files whose name is derived based on output prefix
+and format. For example, with output format FASTQ and prefix \"sample\",
+paired end reads are written into files sample_1.fq.gz and sample_2.fq.gz,
+and orphan reads are written into sample.fq.gz.
 ";
 
 #[derive(PartialEq, Clone, Copy)]
@@ -52,7 +61,6 @@ pub fn main() {
 	let bam_path = args.get_str("<bam_file>");
 	let out_prefix = args.get_str("<out_prefix>");
 
-	// TODO: Add support for FASTQ format (must add BASEQ to HashMap...)
 	// TODO: Consider making this function generic over the output format.
 	let output_format = if args.get_bool("raw") { RAW }
 		else if args.get_bool("fasta") { FASTA }
@@ -73,8 +81,8 @@ pub fn main() {
 	let mut out_2 = GzipWriter::new(&format!("{}_2.{}.gz", out_prefix, extension));
 	let mut out_single = GzipWriter::new(&format!("{}.{}.gz", out_prefix, extension));
 
-	let mut reads_1: HashMap<String, Box<str>> = HashMap::new();
-	let mut reads_2: HashMap<String, Box<str>> = HashMap::new();
+	let mut reads_1: HashMap<Box<str>, Box<str>> = HashMap::new();
+	let mut reads_2: HashMap<Box<str>, Box<str>> = HashMap::new();
 
 	for r in bam.records() {
 		let mut read = r.unwrap_or_else(
@@ -92,7 +100,7 @@ pub fn main() {
 		}
 
 		if read.is_paired() == false {
-			write!(out_single, ">{}\n{}\n", qname, read_seq);
+			write_read(&mut out_single, output_format, qname, &read_seq);
 		} else if read.is_first_in_template() {
 			if let Some(mate_seq) = reads_2.remove(qname) {
 				write_read(&mut out_1, output_format, qname, &read_seq);
@@ -108,6 +116,12 @@ pub fn main() {
 				reads_2.insert(qname.into(), read_seq.into());
 			}
 		}
+	}
+
+	// If we are left with any orphan reads for which a pair was not found, we add
+	// those to the prefix.fq.gz output file.
+	for (qname, seq) in reads_1.iter().chain(reads_2.iter()) {
+		write_read(&mut out_single, output_format, qname, &seq);
 	}
 }
 

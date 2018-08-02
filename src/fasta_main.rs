@@ -1,6 +1,5 @@
 
 extern crate docopt;
-extern crate ascii;
 extern crate bio;
 extern crate regex;
 

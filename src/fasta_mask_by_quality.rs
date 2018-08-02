@@ -37,7 +37,6 @@ pub fn main() {
 		}
 
 		// TODO: Maybe printing one char at a time would be just as fast?
-		output.clear();
 		for (base, qual) in seq.chars().zip(base_qualities.chars()) {
 			// FIXME: We assume Sanger format base qualities here.
 			output.push(if qual as u8 - 33u8 < min_baseq { 'N' } else { base });

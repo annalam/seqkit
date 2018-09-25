@@ -1,9 +1,8 @@
 
-use common::{parse_args, PathArgs};
+use common::{parse_args, PathArgs, FileReader};
 use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;
-use bio::io::bed;
 
 const USAGE: &str = "
 Usage:
@@ -33,15 +32,20 @@ pub fn main() {
 			target_regions.push(Vec::new());
 		}
 
-		let mut bed = bed::Reader::from_file(&targets_path).unwrap_or_else(
-			|_| error!("Could not open BED file {}.", targets_path));
-		for r in bed.records() {
-			let record = r.unwrap();
-			let chr = record.chrom();
-			let tid = bam_header.tid(chr.as_bytes()).unwrap_or_else(||
-				error!("Chromosome {} is listed in target region BED file, but is not found in BAM file.", chr));
-			target_regions[tid as usize].push(Region { 
-				start: (record.start() + 1) as i32, end: record.end() as i32
+
+		let mut bed_file = FileReader::new(&targets_path);
+		let mut line = String::new();
+		while bed_file.read_line(&mut line) {
+			if line.trim().is_empty() || line.starts_with('#') { continue; }
+			let cols: Vec<&str> = line.trim().split('\t').collect();
+			if cols.len() < 3 {
+				error!("Invalid line in BED file {}:\n{}", targets_path, line);
+			}
+			let tid = bam_header.tid(cols[0].as_bytes()).unwrap_or_else(||
+				error!("Chromosome {} is listed in target region BED file, but is not found in BAM file.", cols[0]));
+			target_regions[tid as usize].push(Region {
+				start: cols[1].parse::<i32>().unwrap() + 1,
+				end: cols[2].parse::<i32>().unwrap()
 			});
 		}
 
@@ -66,7 +70,7 @@ pub fn main() {
 		if read.is_duplicate() { duplicate_reads += 1; }
 
 		if target_regions.is_empty() == false {
-			// TODO: Handle spliced regions in reads
+			// TODO: Handle spliced reads
 			let start = read.pos() + 1;
 			let end = read.cigar().end_pos().unwrap() + 1;
 			for region in &target_regions[read.tid() as usize] {

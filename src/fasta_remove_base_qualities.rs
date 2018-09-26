@@ -15,7 +15,7 @@ pub fn main() {
 	let mut line = String::new();
 	while fastq_file.read_line(&mut line) {
 		if line.starts_with('@') {
-			print!("{}", line);
+			print!(">{}", &line[1..]);   // FASTA format has '>' instead of '@'
 			fastq_file.read_line(&mut line);
 			print!("{}", line);
 			// Discard the per-base qualities, if present in the file

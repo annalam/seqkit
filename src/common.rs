@@ -41,16 +41,26 @@ pub struct GzipWriter {
 	gzip: ChildStdin
 }
 
+#[derive(Copy, Clone)]
+pub enum Compressor { GZIP, PIGZ }
+
 impl GzipWriter {
 	pub fn new(path: &str) -> GzipWriter {
+		GzipWriter::with_method(path, Compressor::GZIP)
+	}
+
+	pub fn with_method(path: &str, method: Compressor) -> GzipWriter {
 		let file = File::create(path).unwrap_or_else(
 			|_| error!("Cannot open file {} for writing.", path));
-		GzipWriter {
-			gzip: Command::new("gzip").arg("-c")
+		let compressor = match method {
+			Compressor::GZIP => Command::new("gzip").arg("-c")
 				.stdin(Stdio::piped()).stdout(file).spawn()
-				.unwrap_or_else(|_| error!("Cannot start gzip process."))
-				.stdin.unwrap()
-		}
+				.unwrap_or_else(|_| error!("Cannot start gzip process.")),
+			Compressor::PIGZ => Command::new("pigz").arg("-c")
+				.stdin(Stdio::piped()).stdout(file).spawn()
+				.unwrap_or_else(|_| error!("Cannot start pigz process."))
+		};
+		GzipWriter { gzip: compressor.stdin.unwrap() }
 	}
 
 	pub fn write_fmt(&mut self, fmt: Arguments) -> std::io::Result<()> {

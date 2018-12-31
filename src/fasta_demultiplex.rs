@@ -1,12 +1,15 @@
 
-use common::{parse_args, FileReader, GzipWriter};
+use common::{parse_args, FileReader, GzipWriter, Compressor};
 use std::io::Write;
 use std::str;
 use regex::Regex;
 
 const USAGE: &str = "
 Usage:
-  fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
+  fasta demultiplex [options] <sample_sheet> <fastq_1> <fastq_2>
+
+Options:
+  --parallel   Use pigz (parallel gzip) for compression
 
 Description:
 Splits a pooled FASTQ file into multiple individual FASTQ files, based on a
@@ -26,6 +29,7 @@ pub fn main() {
 	let mut sample_sheet = FileReader::new(&args.get_str("<sample_sheet>"));
 	let mut fastq1 = FileReader::new(&args.get_str("<fastq_1>"));
 	let mut fastq2 = FileReader::new(&args.get_str("<fastq_2>"));
+	let parallel = args.get_bool("--parallel");
 
 	let barcode_regex = Regex::new(r" BC:[ACGTNacgtn]+").unwrap();
 
@@ -44,11 +48,12 @@ pub fn main() {
 		} else if cols[1].len() != barcode_len {
 			error!("Barcodes in sample sheet must be of same length.");
 		}
+		let method = if parallel { Compressor::PIGZ } else { Compressor::GZIP };
 		samples.push(Sample {
 			name: name.into(),
 			barcode: cols[1].into(),
-			output1: GzipWriter::new(&format!("{}_1.fq.gz", name)),
-			output2: GzipWriter::new(&format!("{}_2.fq.gz", name))
+			output1: GzipWriter::with_method(&format!("{}_1.fq.gz", name), method),
+			output2: GzipWriter::with_method(&format!("{}_2.fq.gz", name), method)
 		});
 	}
 

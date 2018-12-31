@@ -21,7 +21,10 @@ For BAM files, Seqkit can:
 Installation
 ------------
 
-Install Rust (version 1.27 or later). Download the Seqkit source code from Github, enter the directory, and type `cargo install`  to install the binaries.
+Install Rust (version 1.31 or later). Then run the following command:
+```
+cargo install --git https://github.com/annalam/seqkit
+```
 
 Examples
 --------

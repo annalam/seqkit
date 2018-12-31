@@ -14,12 +14,15 @@ Usage:
 
 Options:
   --frac-inside=F   Minimum overlap between read and region [default: 0.0]
+  --min-mapq=N      Only count reads with MAPQ ≥ threshold [default: 0]
 ";
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>").to_string();
 	let bed_path = args.get_str("<regions.bed>");
+	let min_mapq: u8 = args.get_str("--min-mapq").parse().unwrap_or_else(
+		|_| error!("--min-mapq must be an integer between 0 - 255."));
 
 	let bam = bam::Reader::from_path(&bam_path).unwrap();
 	let mut chr_names: Vec<String> = Vec::new();
@@ -51,11 +54,9 @@ pub fn main() {
 			if read.is_duplicate() || read.is_secondary() { continue; }
 			if read.is_supplementary() { continue; }
 			if read.tid() != read.mtid() { continue; }
+			if read.mapq() < min_mapq { continue; }
 
-			// Only count each DNA fragment once. But we can't just always
-			// count mate #1, because we want to keep the output sorted
-			// by chromosomal position. So we always print the mate that
-			// has the leftmost coordinate.
+			// Only count each DNA fragment once.
 			if read.pos() > read.mpos() || (read.pos() == read.mpos() && read.is_first_in_template() == false) { continue; }
 
 			let frag_size = read.insert_size().abs();

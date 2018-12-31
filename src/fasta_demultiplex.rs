@@ -61,6 +61,9 @@ pub fn main() {
 		}
 	}
 
+	// TODO: Check that UMI-including barcodes do not clash with
+	// UMI-less barcodes in hybrid runs.
+
 	// TODO: Build a lookup table for (barcode -> sample) mappings.
 	/*let mut barcode_to_sample = vec![0; 4.pow(barcode_len)];
 	for b in 0..4.pow(barcode_len) {

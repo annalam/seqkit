@@ -5,6 +5,7 @@ use std::fmt::Arguments;
 use std;
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::fs::File;
+use rust_htslib::bam;
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -104,4 +105,14 @@ impl FileReader {
 		let v = unsafe { std::mem::transmute::<&mut AsciiString, &mut Vec<u8>>(line) };
 		self.bufread.read_until(b'\n', v).unwrap() > 0
 	}*/
+}
+
+pub fn open_bam(bam_path: &str) -> bam::Reader {
+	if bam_path == "-" {
+		bam::Reader::from_stdin().unwrap_or_else(
+			|_| error!("Failed to read BAM file from standard input."))
+	} else {
+		bam::Reader::from_path(&bam_path).unwrap_or_else(
+			|_| error!("Cannot open BAM file '{}'", bam_path))
+	}
 }

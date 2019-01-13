@@ -1,5 +1,5 @@
 
-use common::{parse_args, GzipWriter};
+use common::{parse_args, GzipWriter, open_bam};
 use std::str;
 use std::collections::HashMap;
 use rust_htslib::bam;
@@ -20,12 +20,7 @@ pub fn main() {
 	let threads: usize = args.get_str("--threads").parse().unwrap_or_else(
 		|_| error!("Invalid value for --threads."));
 
-	let mut bam = if bam_path == "-" {
-		bam::Reader::from_stdin().unwrap()
-	} else {
-		bam::Reader::from_path(&bam_path).unwrap_or_else(
-			|_| error!("Cannot open BAM file '{}'", bam_path))
-	};
+	let mut bam = open_bam(bam_path);
 	let header = bam.header().clone();
 
 	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(&header)).unwrap();

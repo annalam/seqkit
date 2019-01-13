@@ -1,5 +1,5 @@
 
-use common::{parse_args, FileReader, GzipWriter, Compressor};
+use crate::common::{parse_args, FileReader, GzipWriter, Compressor};
 use std::io::Write;
 use std::str;
 use regex::Regex;

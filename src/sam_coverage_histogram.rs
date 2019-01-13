@@ -1,5 +1,5 @@
 
-use common::parse_args;
+use crate::common::parse_args;
 use std::str;
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufRead};

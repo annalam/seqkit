@@ -1,8 +1,4 @@
 
-extern crate docopt;
-extern crate bio;
-extern crate regex;
-
 use std::env;
 
 #[macro_use] mod common;

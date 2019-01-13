@@ -1,5 +1,5 @@
 
-use common::parse_args;
+use crate::common::parse_args;
 use std::str;
 use std::thread;
 use std::process::{Command, Stdio};

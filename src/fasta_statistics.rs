@@ -1,5 +1,5 @@
 
-use common::{parse_args, FileReader, GzipWriter};
+use crate::common::{parse_args, FileReader, GzipWriter};
 use std::io::Write;
 use std::str;
 use std::collections::HashMap;

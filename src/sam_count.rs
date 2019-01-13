@@ -1,5 +1,5 @@
 
-use common::parse_args;
+use crate::common::parse_args;
 use std::str;
 use std::thread;
 use std::fs::{File, remove_file};
@@ -8,7 +8,7 @@ use std::io::{BufReader, BufWriter, BufRead, Write};
 use rust_htslib::bam;
 use rust_htslib::bam::Read;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   sam count [options] <bam_file> <regions.bed>
 

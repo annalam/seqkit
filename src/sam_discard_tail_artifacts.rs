@@ -1,4 +1,4 @@
-use common::parse_args;
+use crate::common::parse_args;
 use std::str;
 use std::process::exit;
 use std::ascii::AsciiExt;

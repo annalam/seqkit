@@ -1,5 +1,5 @@
 
-use common::{parse_args, open_bam};
+use crate::common::{parse_args, open_bam};
 use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::record::Record;

@@ -1,6 +1,5 @@
 
-use common::{parse_args, PathArgs};
-use std::str;
+use crate::common::{parse_args, PathArgs};
 use std::collections::HashMap;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;

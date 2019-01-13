@@ -1,5 +1,5 @@
 
-use common::{parse_args, FileReader};
+use crate::common::{parse_args, FileReader};
 use std::str;
 use std::process::exit;
 

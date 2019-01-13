@@ -1,5 +1,5 @@
 
-use common::{parse_args, GzipWriter};
+use crate::common::{parse_args, GzipWriter};
 use std::str;
 use std::collections::HashMap;
 use rust_htslib::bam;

@@ -1,5 +1,5 @@
 
-use common::{parse_args, PathArgs, FileReader};
+use crate::common::{parse_args, PathArgs, FileReader};
 use std::str;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;

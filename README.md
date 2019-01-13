@@ -23,7 +23,7 @@ Installation
 
 Install Rust (version 1.31 or later). Then run the following command:
 ```
-cargo install --git https://github.com/annalam/seqkit
+cargo install --force --git https://github.com/annalam/seqkit
 ```
 
 Examples

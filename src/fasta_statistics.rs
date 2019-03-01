@@ -46,7 +46,7 @@ pub fn main() {
 		sample_barcodes.into_iter().collect();
 	entries.sort_by_key(|x| x.1);
 	entries.reverse();
-	for (barcode, count) in entries {
+	for (barcode, count) in &entries[0..100] {
 		println!("- {}: {}", barcode, count);
 	}
 }

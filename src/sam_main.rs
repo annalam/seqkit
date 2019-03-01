@@ -6,7 +6,7 @@ mod sam_count; mod sam_fragments; mod sam_fragment_lengths; mod sam_statistics;
 mod sam_trim_qnames;
 mod sam_mark_duplicates;
 mod sam_to_fastq; mod sam_subsample;
-mod sam_filter_by_sequence; mod sam_repair;
+mod sam_filter_by_sequence; mod sam_simplify_qnames;
 
 const USAGE: &str = "
 Usage:
@@ -19,7 +19,7 @@ Usage:
   sam trim qnames <bam_file>
   sam subsample <bam_file> <fraction>
   sam filter by sequence <bam_file> <sequences>...
-  sam repair <sam_file>
+  sam simplify qnames <bam_file>
 
 Extract reads from BAM files:
   sam to raw <bam_file> <out_prefix>
@@ -53,8 +53,8 @@ fn main() {
 		sam_filter_by_sequence::main();
 	} else if args.len() >= 2 && args[1] == "subsample" {
 		sam_subsample::main();
-	} else if args.len() >= 2 && args[1] == "repair" {
-		sam_repair::main();
+	} else if args.len() >= 3 && args[1..3] == ["simplify", "qnames"] {
+		sam_simplify_qnames::main();
 	} else {
 		eprintln!("{}", USAGE);
 	}

@@ -8,7 +8,7 @@ use rust_htslib::bam::record::Record;
 
 const USAGE: &str = "
 Usage:
-  sam repair [options] <bam_file>
+  sam simplify qnames [options] <bam_file>
 
 Options:
   --threads=N    Number of threads to use for BAM compression [default: 1]

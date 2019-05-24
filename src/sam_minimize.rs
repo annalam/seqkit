@@ -3,12 +3,15 @@ use crate::common::{parse_args, GzipWriter, open_bam};
 use std::str;
 use std::collections::HashMap;
 use rust_htslib::bam;
-use rust_htslib::bam::Read;
+use rust_htslib::bam::{Read, header::Header};
 use rust_htslib::bam::record::Record;
 
 const USAGE: &str = "
 Usage:
   sam minimize [options] <bam_file>
+
+Options:
+  --uncompressed    Output in uncompressed BAM format
 
 Changes read IDs into simple numeric identifiers, removes per-base qualities,
 and removes all auxiliary fields.
@@ -25,8 +28,12 @@ pub fn main() {
 	let mut highest_id: u32 = 0;
 	let mut qname_to_id: HashMap<Vec<u8>, u32> = HashMap::new();
 
-	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(&header)).unwrap();
-	//if threads > 1 { out.set_threads(threads); }
+	let mode: &[u8] = match args.get_bool("--uncompressed") {
+		true => b"wbu", false => b"wb"
+	};
+	//let mut out = bam::Writer::from_stdout(&Header::from_template(&header)).unwrap();
+	let mut out = bam::Writer::new(b"-", mode,
+		&Header::from_template(&header)).unwrap();
 
 	for r in bam.records() {
 		let mut read = r.unwrap_or_else(

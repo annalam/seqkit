@@ -1,9 +1,11 @@
 
 use crate::common::{parse_args, open_bam};
 use std::str;
+use std::cmp::{min, max};
 use rust_htslib::bam;
-use rust_htslib::bam::record::Record;
-use rust_htslib::bam::Read;
+use rust_htslib::bam::record::{Record, Seq};
+use rust_htslib::bam::{Read, ReadError};
+use hashbrown::HashSet;
 
 // TODO: Consider using fragment signatures for paired end reads where both
 // mates have aligned to the genome, but with low mapping quality. The
@@ -16,124 +18,161 @@ Usage:
   sam mark duplicates [options] <bam_file>
 
 Options:
-  --debug              Print information about duplicate marking process
-  --mark-semi-aligned  Mark duplicates among mapped reads with an unmapped mate
-  --mark-unaligned     Mark duplicates among unaligned reads
-  --allow-erosion=N    Assume that two DNA fragments can be duplicates even if
-                       one of them has eroded N bases at one end (but not
-                       both ends) [default: 0]
-
+  --uncompressed    Output in uncompressed BAM format
 
 Description:
-This command identifies PCR/optical duplicates in the input BAM file, and outputs a new BAM file where duplicate reads have been flagged with the 0x400 (\"PCR or optical duplicate\") flag. Memory usage is lowest when the tool is run on position-sorted BAM files, but the tool does also work with unsorted BAM files. A BAM index is not required.
+This command identifies PCR/optical duplicates in the input BAM file, and
+outputs a new BAM file where duplicate reads have been flagged with the
+0x400 (\"PCR or optical duplicate\") flag. The input BAM file must be
+name-sorted.
 
-By default, the software only marks duplicates among paired end reads where both mates have aligned to the genome. For these read pairs, duplicates are identified based on fragment boundaries.
-
-If the --mark-semi-aligned flag is provided, the software will also mark duplicates among paired end reads where only one mate has aligned to the genome. For these read pairs, a 20 bp fragment signature will be used to identify the fragment's other boundary. Two DNA fragments are then considered duplicates if the 
-
-For unaligned reads, 20 bp from each end of a DNA fragment are used as a fragment signature.
+20 bp from each end of a DNA fragment are used as a fragment signature.
 
 When two or more redundant read pairs are identified, the software leaves one read pair unmarked, and marks the other redundant read pairs with the duplicate flag. If BASEQ information is available, the read pair with highest cumulative BASEQ is left unmarked. If BASEQ information is not available, the read pair with highest cumulative number of unambiguous nucleotides is left unmarked.
 ";
 
+struct Fragment {
+	signature_1: u32,	// 16 bases, 2 bits per base
+	signature_2: u32    // 16 bases, 2 bits per base
+}
+
+struct FragmentUMI {
+	signature_1: u16,	// 8 bases, 2 bits per base
+	signature_2: u16,   // 8 bases, 2 bits per base
+	umi: u32            // Max 16 bases, 2 bits per base
+}
+
+// Function for reading BAM records, with proper user-friendly messages.
+// Returns false after reading the last record, or if reading fails.
+fn read_record(bam: &mut bam::Reader, record: &mut bam::Record) -> bool {
+	match bam.read(record) {
+		Err(ReadError::NoMoreRecord) => false,
+		Err(ReadError::Truncated) => error!("BAM file ended prematurely."),
+		Err(ReadError::Invalid) => error!("Invalid BAM record."),
+		Ok(_) => true
+	}
+}
+
+// Here we pack the first 16 bases of the read into a compact
+// 32-bit integer. If the read is shorter than 16 bases long, we
+// mark the missing bases as 'A'.
+fn mate_signature(read: &Record) -> u32 {
+	let seq = read.seq();
+	let mut signature = 0u32;
+	if read.is_reverse() {
+		let start = if seq.len() >= 16 { seq.len() - 16 } else { 0 };
+
+		for k in (start..seq.len()).rev() {
+			signature = signature * 4 + match seq.encoded_base(k) {
+				1 => 3,   // A, encoded as its complement T
+				2 => 2,   // C, encoded as its complement G
+				4 => 1,   // G, encoded as its complement C
+				_ => 0,   // T or ambiguous base, encoded as its complement A
+			};
+		}
+	} else {
+		for k in 0..min(seq.len(), 16) {
+			signature = signature * 4 + match seq.encoded_base(k) {
+				2 => 1,   // C
+				4 => 2,   // G
+				8 => 3,   // T
+				_ => 0,   // A (or ambiguous base)
+			};
+		}
+	}
+	
+	signature
+}
+
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
-	let debug = args.get_bool("--debug");
 
 	let mut bam = open_bam(bam_path);
 	let header = bam.header().clone();
 
-	let mut out = bam::Writer::from_stdout(&bam::header::Header::from_template(&header)).unwrap();
+	let mode: &[u8] = match args.get_bool("--uncompressed") {
+		true => b"wbu", false => b"wb"
+	};
 
-	// These variables are used to collect statistics on what percentage
-	// of reads were classified as duplicates.
-	let mut total_aligned_reads = 0;
-	let mut total_marked_duplicate = 0;
+	let mut out = bam::Writer::new(b"-", mode,
+		&bam::Header::from_template(&header)).unwrap();
 
-	let mut candidates: Vec<Record> = Vec::new();
-	let mut cluster_chr = -1;
-	let mut cluster_pos: i32 = 0;
-	for r in bam.records() {
-		let read = r.unwrap();
+	// Collect statistics on how many reads were classified as duplicates.
+	let mut total_reads = 0;
+	let mut total_duplicates = 0;
 
-		// Unmapped reads are never marked as duplicates, so just output them
-		if read.is_unmapped() {
-			out.write(&read).unwrap();
-			continue;
+	let mut read_1 = Record::new();
+	let mut read_2 = Record::new();
+
+	// TODO: Use a simpler hash function (modulo would be sufficient).
+	let mut seen_signatures: HashSet<u64> = HashSet::new();
+
+	loop {
+		if read_record(&mut bam, &mut read_1) == false { break; }
+		if read_record(&mut bam, &mut read_2) == false { break; }
+
+		if read_1.is_paired() == false || read_2.is_paired() == false {
+			error!("BAM file contains unpaired reads. Only paired end reads are currently supported.");
 		}
 
-		// Accumulate a cluster of reads that have all been aligned to
-		// the same chromosome and the same start position.
-		if read.tid() == cluster_chr && read.pos() == cluster_pos {
-			candidates.push(read);
-			continue;
+		if read_1.is_secondary() || read_1.is_supplementary() ||
+			read_2.is_secondary() || read_2.is_supplementary() {
+			error!("Input BAM file contains secondary or supplementary reads. These are not currently supported.");
 		}
 
-		// At this point we have a cluster of reads that have all been
-		// aligned to the same chromosome and the same start position.
-		// We now go through all of them and check which are real duplicates.
-		total_aligned_reads += candidates.len();
-		let mut duplicate = vec![false; candidates.len()];
-		for c in 0..candidates.len() {
-			if debug && candidates.len() > 1 {
-				print_read(&candidates[c], duplicate[c]);
-			}
-			if duplicate[c] {
-				candidates[c].set_duplicate();
-				out.write(&candidates[c]).unwrap();
-				total_marked_duplicate += 1;
-				continue;
-			}
-			for d in c+1..candidates.len() {
-				if duplicate[d] { continue; }  // Already flagged as duplicate
-				if are_duplicates(&candidates[c], &candidates[d]) {
-					duplicate[d] = true;
-				}
-			}
-			out.write(&candidates[c]).unwrap();
+		if read_1.qname() != read_2.qname() {
+			error!("Input BAM file contains consecutive paired end reads #{} and #{} with different IDs '{}' and '{}'. Please sort the input BAM file by read ID using 'samtools sort'.",
+				total_reads + 1, total_reads + 2,
+				str::from_utf8(read_1.qname()).unwrap(),
+				str::from_utf8(read_2.qname()).unwrap());
 		}
 
-		if debug && candidates.len() > 1 { eprintln!("---------------"); }
+		let sig_1 = mate_signature(&read_1);
+		let sig_2 = mate_signature(&read_2);
+		/*if sig_1 == sig_2 {
+			eprintln!("Read 1 with ID {} and signature {}:\n{} ({})",
+				str::from_utf8(&read_1.qname()).unwrap(), sig_1, 
+				str::from_utf8(&read_1.seq().as_bytes()).unwrap(),
+				if read_1.is_reverse() { "-" } else { "+" });
+			eprintln!("Read 2 with ID {} and signature {}:\n{} ({})",
+				str::from_utf8(&read_2.qname()).unwrap(), sig_2, 
+				str::from_utf8(&read_2.seq().as_bytes()).unwrap(),
+				if read_2.is_reverse() { "-" } else { "+" });
+		}*/
 
-		// Quick check to ensure that BAM file is position-sorted.
-		assert!(read.pos() > cluster_pos || read.tid() != cluster_chr);
+		// Since a double-stranded DNA fragment can be read at either
+		// orientation (i.e. mate #1 can be at either one of the ends), we
+		// need DNA fragment signature that is not affected by orientation.
+		// To achieve this, we change the order
 
-		// We can now start a new cluster of reads.
-		cluster_chr = read.tid();
-		cluster_pos = read.pos();
-		candidates.clear();
-		candidates.push(read);
+
+
+		// To prevent issues arising due to 
+		let signature: u64 = if sig_2 < sig_1 {
+			(sig_2 as u64) | (sig_1 as u64) << 32
+		} else {
+			(sig_1 as u64) | (sig_2 as u64) << 32
+		};
+
+		if seen_signatures.contains(&signature) {
+			read_1.set_duplicate();
+			read_2.set_duplicate();
+			total_duplicates += 2;
+		} else {
+			seen_signatures.insert(signature);
+		}
+
+		out.write(&read_1).unwrap();
+		out.write(&read_2).unwrap();
+		total_reads += 2;
 	}
 
-	eprintln!("{} / {} ({:.1}%) aligned reads were marked as duplicates.",
-		total_marked_duplicate, total_aligned_reads,
-		total_marked_duplicate as f64 / total_aligned_reads as f64 * 100.0);
+	eprintln!("{} / {} ({:.1}%) reads were marked as duplicates.",
+		total_duplicates, total_reads,
+		total_duplicates as f64 / total_reads as f64 * 100.0);
 }
-
-// Two reads are considered duplicates if:
-// - They are in the same chromosome
-// - They have the same start position
-// - They are in the same strand
-// - Their mates are not in different chromosomes
-// - Their mates are not in different strands
-// - Their mate positions do not differ by more than 1000 bp
-fn are_duplicates(a: &Record, b: &Record) -> bool {
-	if a.tid() != b.tid() { return false; }
-	if a.pos() != b.pos() { return false; }
-	if a.is_reverse() != b.is_reverse() { return false; }
-	if a.is_mate_unmapped() == false && b.is_mate_unmapped() == false {
-		if a.mtid() != b.mtid() { return false; }
-		if a.insert_size() != b.insert_size() { return false; }
-		if a.is_mate_reverse() != b.is_mate_reverse() { return false; }
-		if a.insert_size() == 0 && (a.mpos() - b.mpos()).abs() > 1000 {
-			return false;
-		}
-		if (a.mpos() - b.mpos()).abs() > 1000 { return false; }
-	}
-	return true;
-}
-
+/*
 fn print_read(read: &Record, duplicate: bool) {
 	let pos = if read.is_reverse() {
 		read.cigar().end_pos().unwrap() - 1
@@ -144,3 +183,4 @@ fn print_read(read: &Record, duplicate: bool) {
 		if read.is_reverse() { '-' } else { '+' }, read.insert_size(),
 		if duplicate { "" } else { " ***" });
 }
+*/

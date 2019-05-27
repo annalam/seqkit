@@ -143,12 +143,11 @@ pub fn main() {
 
 		// Since a double-stranded DNA fragment can be read at either
 		// orientation (i.e. mate #1 can be at either one of the ends), we
-		// need DNA fragment signature that is not affected by orientation.
-		// To achieve this, we change the order
-
-
-
-		// To prevent issues arising due to 
+		// need a DNA fragment signature that is not affected by orientation.
+		// Given a paired end read, we extract 16 bp from the beginning of
+		// both reads, and call these the mate-signatures A and B.
+		// The total signature is then A+B if A has lower lexicographic rank,
+		// or B+A if A has higher lexicographic rank.
 		let signature: u64 = if sig_2 < sig_1 {
 			(sig_2 as u64) | (sig_1 as u64) << 32
 		} else {

@@ -12,14 +12,24 @@ Usage:
 
 Options:
   --uncompressed    Output in uncompressed BAM format
+  --read-ids        Minimize read identifiers (i.e. QNAME fields)
+  --base-qualities  Remove per-base qualities
+  --tags            Remove all aux fields (tags)
 
 Changes read IDs into simple numeric identifiers, removes per-base qualities,
-and removes all auxiliary fields.
+and removes all auxiliary fields (tags).
 ";
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
+	let minimize_qnames = args.get_bool("--read-ids");
+	let remove_baseq = args.get_bool("--base-qualities");
+	let remove_tags = args.get_bool("--tags");
+
+	if remove_tags == false {
+		error!("Running 'sam minimize' without the --tags flag is not yet supported.");
+	}
 
 	let mut bam = open_bam(bam_path);
 	let header = bam.header().clone();
@@ -41,8 +51,7 @@ pub fn main() {
 
 		let mut qname = read.qname().to_vec();
 
-		// If the read identifier is not a simple ASCII number, we simplify it
-		if qname.iter().all(|c| c.is_ascii_digit()) == false {
+		if minimize_qnames {
 			if let Some(slash_pos) = qname.iter().position(|x| *x == b'/') {
 				qname.truncate(slash_pos);
 			}
@@ -58,9 +67,13 @@ pub fn main() {
 		let cigar = read.cigar();
 		let seq = read.seq().as_bytes();
 
-		// According to BAM specification, missing per-base quality information
-		// is denoted with 0xFF bytes (whose number must equal sequence length)
-		let qual = vec![0xFFu8; seq.len()];
+		let qual = if remove_baseq {
+			// According to BAM specification, missing per-base qualities
+			// are denoted with 0xFF bytes (number must equal sequence length)
+			vec![0xFFu8; seq.len()]
+		} else {
+			read.qual().to_vec()
+		};
 
 		// The call to .set() removes all AUX fields
 		read.set(&qname, &cigar, &seq, &qual);

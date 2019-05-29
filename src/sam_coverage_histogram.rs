@@ -9,18 +9,27 @@ Usage:
   sam coverage histogram [options] <bam_file>
 
 Options:
-  --regions=BED   Regions to calculate coverage in [default: everywhere]
+  --region=REGION   Region to calculate coverage in [default: everywhere]
+  --regions=BED     BED file of regions to calculate coverage in
+                    [default: everywhere]
 ";
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
+	let region = args.get_str("--region");
 	let regions_bed = args.get_str("--regions");
 	let max_coverage = 10_000;
 
+	if region != "everywhere" && regions_bed != "everywhere" {
+		error!("Only one of --region or --regions can be provided.");
+	}
+
 	let mut cmd = Command::new("samtools");
 	cmd.arg("depth").arg("-a");
-	if regions_bed != "everywhere" {
+	if region != "everywhere" {
+		cmd.arg("-r").arg(region);
+	} else if regions_bed != "everywhere" {
 		cmd.arg("-b").arg(regions_bed);
 	}
 	if bam_path == "-" {

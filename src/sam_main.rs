@@ -6,6 +6,7 @@ mod sam_count; mod sam_fragments; mod sam_fragment_lengths; mod sam_statistics;
 mod sam_mark_duplicates;
 mod sam_to_fastq; mod sam_subsample;
 mod sam_filter_by_sequence;
+mod sam_coverage_histogram;
 mod sam_minimize; mod sam_tags_from_qname;
 
 const USAGE: &str = "
@@ -42,8 +43,8 @@ fn main() {
 		sam_fragment_lengths::main();
 	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
 		sam_mark_duplicates::main();
-	//} else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
-	//	coverage_histogram::main();
+	} else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
+		sam_coverage_histogram::main();
 	} else if args.len() >= 3 && args[1] == "to" &&
 		(args[2] == "raw" || args[2] == "fasta" || args[2] == "fastq") {
 		sam_to_fastq::main();

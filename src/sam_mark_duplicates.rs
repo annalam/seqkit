@@ -7,12 +7,6 @@ use rust_htslib::bam::record::{Record, Seq};
 use rust_htslib::bam::{Read, ReadError};
 use hashbrown::HashSet;
 
-// TODO: Consider using fragment signatures for paired end reads where both
-// mates have aligned to the genome, but with low mapping quality. The
-// reasoning is that in these situations the mapped coordinates are often
-// random, and therefore duplicate identification based on mapping coordinates
-// will not work properly.
-
 const USAGE: &str = "
 Usage:
   sam mark duplicates [options] <bam_file>

@@ -1,5 +1,5 @@
 
-use crate::common::{parse_args, GzipWriter, open_bam};
+use crate::common::{parse_args, open_bam};
 use std::str;
 use regex::Regex;
 use rust_htslib::bam;

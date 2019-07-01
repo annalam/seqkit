@@ -102,12 +102,29 @@ pub fn main() {
 	// TODO: Use a simpler hash function (modulo would be sufficient).
 	let mut seen_signatures: HashSet<u64> = HashSet::new();
 
+	// This variable only exists so that we can make the code robust towards
+	// a few missing reads in the BAM file. We can probably drop this and
+	// simplify the code later.
+	let mut unpaired = 0;
+
 	loop {
-		if read_record(&mut bam, &mut read_1) == false { break; }
-		if read_record(&mut bam, &mut read_2) == false { break; }
+		if unpaired > 10 {
+			error!("Stopping early due to abnormally high number of consecutive reads with non-matching IDs. Please sort the input BAM file by read ID using 'samtools sort -n'.");
+		}
+
+		if unpaired > 0 {
+			std::mem::swap(&mut read_1, &mut read_2);
+			//read_1 = read_2.clone();  // Results in malformatted "read_1"
+			if read_record(&mut bam, &mut read_2) == false { break; }
+			total_reads += 1;
+		} else {
+			if read_record(&mut bam, &mut read_1) == false { break; }
+			if read_record(&mut bam, &mut read_2) == false { break; }
+			total_reads += 2;
+		}
 
 		if read_1.is_paired() == false || read_2.is_paired() == false {
-			error!("BAM file contains unpaired reads. Only paired end reads are currently supported.");
+			error!("WARNING: BAM file contains unpaired reads. Only paired end reads are currently supported.");
 		}
 
 		if read_1.is_secondary() || read_1.is_supplementary() ||
@@ -116,11 +133,16 @@ pub fn main() {
 		}
 
 		if read_1.qname() != read_2.qname() {
-			error!("Input BAM file contains consecutive paired end reads #{} and #{} with different IDs '{}' and '{}'. Please sort the input BAM file by read ID using 'samtools sort -n'.",
-				total_reads + 1, total_reads + 2,
+			eprintln!("WARNING: Input BAM file contains consecutive paired end reads #{} and #{} with different IDs '{}' and '{}'.",
+				total_reads -1, total_reads,
 				str::from_utf8(read_1.qname()).unwrap(),
 				str::from_utf8(read_2.qname()).unwrap());
+
+			unpaired += 1;
+			continue;  // Jump to top and read next record in BAM file
 		}
+
+		unpaired = 0;  // Reset the 'unpaired' counter, we found a pair.
 
 		let sig_1 = mate_signature(&read_1);
 		let sig_2 = mate_signature(&read_2);
@@ -158,7 +180,6 @@ pub fn main() {
 
 		out.write(&read_1).unwrap();
 		out.write(&read_2).unwrap();
-		total_reads += 2;
 	}
 
 	eprintln!("{} / {} ({:.1}%) reads were marked as duplicates.",

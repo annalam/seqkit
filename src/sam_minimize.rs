@@ -27,8 +27,12 @@ pub fn main() {
 	let remove_baseq = args.get_bool("--base-qualities");
 	let remove_tags = args.get_bool("--tags");
 
-	if remove_tags == false {
-		error!("Running 'sam minimize' without the --tags flag is not yet supported.");
+	if !minimize_qnames && !remove_baseq && !remove_tags {
+		error!("One of --read-ids, --base-qualities, or --tags must be given.");
+	}
+
+	if remove_baseq && !remove_tags {
+		error!("Running 'sam minimize' with --base-qualities but without the --tags flag is not yet supported.");
 	}
 
 	let mut bam = open_bam(bam_path);
@@ -75,8 +79,12 @@ pub fn main() {
 			read.qual().to_vec()
 		};
 
-		// The call to .set() removes all AUX fields
-		read.set(&qname, &cigar, &seq, &qual);
+		if minimize_qnames && !remove_baseq && !remove_tags {
+			read.set_qname(&qname);
+		} else {
+			// The call to .set() removes all AUX fields
+			read.set(&qname, &cigar, &seq, &qual);
+		}
 		out.write(&read).unwrap();
 	}
 }

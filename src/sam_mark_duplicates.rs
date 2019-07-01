@@ -116,7 +116,7 @@ pub fn main() {
 		}
 
 		if read_1.qname() != read_2.qname() {
-			error!("Input BAM file contains consecutive paired end reads #{} and #{} with different IDs '{}' and '{}'. Please sort the input BAM file by read ID using 'samtools sort'.",
+			error!("Input BAM file contains consecutive paired end reads #{} and #{} with different IDs '{}' and '{}'. Please sort the input BAM file by read ID using 'samtools sort -n'.",
 				total_reads + 1, total_reads + 2,
 				str::from_utf8(read_1.qname()).unwrap(),
 				str::from_utf8(read_2.qname()).unwrap());

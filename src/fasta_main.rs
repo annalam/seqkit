@@ -8,6 +8,7 @@ mod fasta_trim_by_quality; mod fasta_mask_by_quality;
 mod fasta_mappability_track; mod fasta_add_barcode;
 mod fasta_demultiplex; mod fasta_convert_basespace;
 mod fasta_statistics; mod fasta_remove_base_qualities;
+mod fasta_extract_dual_umi;
 
 const USAGE: &str = "
 Usage:
@@ -19,6 +20,7 @@ Usage:
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
   fasta add barcode <fastq_file> <barcode_file> <barcode_format>
+  fasta extract dual umi <interleaved_fastq>
   fasta convert basespace <fastq_file>
   fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
   fasta statistics <fastq_file>
@@ -45,6 +47,8 @@ fn main() {
 		fasta_mappability_track::main();
 	} else if args.len() >= 3 && args[1..3] == ["add", "barcode"] {
 		fasta_add_barcode::main();
+	} else if args.len() >= 4 && args[1..4] == ["extract", "dual", "umi"] {
+		fasta_extract_dual_umi::main();
 	} else if args.len() >= 3 && args[1..3] == ["convert", "basespace"] {
 		fasta_convert_basespace::main();
 	} else if args.len() >= 2 && args[1] == "demultiplex" {

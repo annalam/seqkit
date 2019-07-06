@@ -62,7 +62,7 @@ pub fn main() {
 
 			let id = if let Some(x) = qname_to_id.remove(&qname) { x } else {
 				highest_id += 1;
-				qname_to_id.insert(qname, highest_id);
+				qname_to_id.insert(qname.clone(), highest_id);
 				highest_id
 			};
 			qname = format!("{}", id).into_bytes();

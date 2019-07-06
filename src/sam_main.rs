@@ -8,6 +8,7 @@ mod sam_to_fastq; mod sam_subsample;
 mod sam_filter_by_sequence;
 mod sam_coverage_histogram;
 mod sam_minimize; mod sam_tags_from_qname;
+mod sam_concatenate;
 
 const USAGE: &str = "
 Usage:
@@ -21,6 +22,7 @@ Usage:
   sam filter by sequence <bam_file> <sequences>...
   sam minimize <bam_file>
   sam tags from qname <bam_file>
+  sam concatenate <bam_files>
 
 Extract reads from BAM files:
   sam to raw <bam_file> <out_prefix>
@@ -56,6 +58,8 @@ fn main() {
 		sam_minimize::main();
 	} else if args.len() >= 4 && args[1..4] == ["tags", "from", "qname"] {
 		sam_tags_from_qname::main();
+	} else if args.len() >= 2 && args[1] == "concatenate" {
+		sam_concatenate::main();
 	} else {
 		eprintln!("{}", USAGE);
 	}

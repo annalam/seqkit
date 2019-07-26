@@ -63,10 +63,12 @@ impl GzipWriter {
 		};
 		GzipWriter { gzip: compressor.stdin.unwrap() }
 	}
+}
 
-	pub fn write_fmt(&mut self, fmt: Arguments) -> std::io::Result<()> {
-		self.gzip.write_fmt(fmt)
-	}
+impl Write for GzipWriter {
+	fn write(&mut self, buf: &[u8]) -> std::io::Result<usize>
+		{ self.gzip.write(buf) }
+	fn flush(&mut self) -> std::io::Result<()> { self.gzip.flush() }
 }
 
 pub struct FileReader {

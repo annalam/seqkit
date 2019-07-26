@@ -1,6 +1,7 @@
 
 use crate::common::{parse_args, GzipWriter};
 use std::str;
+use std::io::Write;
 use std::collections::HashMap;
 use rust_htslib::bam;
 use rust_htslib::bam::Read;
@@ -11,6 +12,9 @@ Usage:
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
   sam to fastq <bam_file> <out_prefix>
+  sam to interleaved raw <bam_file>
+  sam to interleaved fasta <bam_file>
+  sam to interleaved fastq <bam_file>
 
 These commands convert BAM files into FASTQ, FASTA, or raw sequence-per-line
 format. Both name-sorted and position-sorted BAM files are supported,
@@ -62,10 +66,33 @@ pub fn main() {
 	let out_prefix = args.get_str("<out_prefix>");
 
 	// TODO: Consider making this function generic over the output format.
+	let interleaved = args.get_bool("interleaved");
 	let output_format = if args.get_bool("raw") { RAW }
 		else if args.get_bool("fasta") { FASTA }
 		else if args.get_bool("fastq") { FASTQ }
 		else { error!("Invalid output format."); };
+
+	// In interleaved mode, we write all reads into stdout
+	if interleaved {
+		let mut out_1 = std::io::stdout();
+		let mut out_2 = std::io::stdout();
+		let mut out_single = std::io::stdout();
+		write_reads(&bam_path, &mut out_1, &mut out_2, &mut out_single, output_format);
+	} else {
+		let extension = match output_format {
+			RAW => "seq", FASTA => "fa", FASTQ => "fq"
+		};
+		let mut out_1 = GzipWriter::new(&format!("{}_1.{}.gz", out_prefix, extension));
+		let mut out_2 = GzipWriter::new(&format!("{}_2.{}.gz", out_prefix, extension));
+		let mut out_single = GzipWriter::new(&format!("{}.{}.gz", out_prefix, extension));
+		write_reads(&bam_path, &mut out_1, &mut out_2, &mut out_single, output_format);
+	}
+}
+
+// Type-parameterized function that can handle writing to gzip files or to
+// stdout stream.
+fn write_reads<T: Write>(bam_path: &str, out_1: &mut T, out_2: &mut T,
+	out_single: &mut T, output_format: OutputFormat) {
 
 	let mut bam = if bam_path == "-" {
 		bam::Reader::from_stdin().unwrap()
@@ -73,13 +100,6 @@ pub fn main() {
 		bam::Reader::from_path(&bam_path).unwrap_or_else(
 			|_| error!("Cannot open BAM file '{}'", bam_path))
 	};
-
-	let extension = match output_format {
-		RAW => "seq", FASTA => "fa", FASTQ => "fq"
-	};
-	let mut out_1 = GzipWriter::new(&format!("{}_1.{}.gz", out_prefix, extension));
-	let mut out_2 = GzipWriter::new(&format!("{}_2.{}.gz", out_prefix, extension));
-	let mut out_single = GzipWriter::new(&format!("{}.{}.gz", out_prefix, extension));
 
 	let mut reads_1: HashMap<Box<str>, Box<str>> = HashMap::new();
 	let mut reads_2: HashMap<Box<str>, Box<str>> = HashMap::new();
@@ -100,18 +120,18 @@ pub fn main() {
 		}
 
 		if read.is_paired() == false {
-			write_read(&mut out_single, output_format, qname, &read_seq);
+			write_read(out_single, output_format, qname, &read_seq);
 		} else if read.is_first_in_template() {
 			if let Some(mate_seq) = reads_2.remove(qname) {
-				write_read(&mut out_1, output_format, qname, &read_seq);
-				write_read(&mut out_2, output_format, qname, &mate_seq);
+				write_read(out_1, output_format, qname, &read_seq);
+				write_read(out_2, output_format, qname, &mate_seq);
 			} else {
 				reads_1.insert(qname.into(), read_seq.into());
 			}
 		} else if read.is_last_in_template() {
 			if let Some(mate_seq) = reads_1.remove(qname) {
-				write_read(&mut out_1, output_format, qname, &mate_seq);
-				write_read(&mut out_2, output_format, qname, &read_seq);
+				write_read(out_1, output_format, qname, &mate_seq);
+				write_read(out_2, output_format, qname, &read_seq);
 			} else {
 				reads_2.insert(qname.into(), read_seq.into());
 			}
@@ -121,11 +141,11 @@ pub fn main() {
 	// If we are left with any orphan reads for which a pair was not found, we add
 	// those to the prefix.fq.gz output file.
 	for (qname, seq) in reads_1.iter().chain(reads_2.iter()) {
-		write_read(&mut out_single, output_format, qname, &seq);
+		write_read(out_single, output_format, qname, &seq);
 	}
-}
+} 
 
-fn write_read(out: &mut GzipWriter, format: OutputFormat, qname: &str,
+fn write_read<T: Write>(out: &mut T, format: OutputFormat, qname: &str,
 	seq: &str) {
 	if format == FASTQ {
 		let seq_len = (seq.len() - 1) / 2;

@@ -28,6 +28,9 @@ Extract reads from BAM files:
   sam to raw <bam_file> <out_prefix>
   sam to fasta <bam_file> <out_prefix>
   sam to fastq <bam_file> <out_prefix>
+  sam to interleaved raw <bam_file>
+  sam to interleaved fasta <bam_file>
+  sam to interleaved fastq <bam_file>
 ";
 
 fn main() {
@@ -47,8 +50,11 @@ fn main() {
 		sam_mark_duplicates::main();
 	} else if args.len() >= 3 && args[1..3] == ["coverage", "histogram"] {
 		sam_coverage_histogram::main();
-	} else if args.len() >= 3 && args[1] == "to" &&
+	} else if args.len() >= 3 && args[1] == "to" && 
 		(args[2] == "raw" || args[2] == "fasta" || args[2] == "fastq") {
+		sam_to_fastq::main();
+	} else if args.len() >= 4 && args[1..3] == ["to", "interleaved"] &&
+		(args[3] == "raw" || args[3] == "fasta" || args[3] == "fastq") {
 		sam_to_fastq::main();
 	} else if args.len() >= 4 && args[1..4] == ["filter", "by", "sequence"] {
 		sam_filter_by_sequence::main();

@@ -8,7 +8,7 @@ mod fasta_trim_by_quality; mod fasta_mask_by_quality;
 mod fasta_mappability_track; mod fasta_add_barcode;
 mod fasta_demultiplex; mod fasta_convert_basespace;
 mod fasta_statistics; mod fasta_remove_base_qualities;
-mod fasta_extract_dual_umi;
+mod fasta_extract_dual_umi; mod fasta_split_into_anchors;
 
 const USAGE: &str = "
 Usage:
@@ -16,6 +16,7 @@ Usage:
   fasta remove base qualities <fastq>
   fasta simplify read ids <fastq_file>
   fasta interleave <fastq_1> <fastq_2>
+  fasta split into anchors <fastq> <anchor_len>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
@@ -39,6 +40,8 @@ fn main() {
 		fasta_simplify_read_ids::main();
 	} else if args.len() >= 2 && args[1] == "interleave" {
 		fasta_interleave::main();
+	} else if args.len() >= 4 && args[1..4] == ["split", "into", "anchors"] {
+		fasta_split_into_anchors::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
 		fasta_trim_by_quality::main();
 	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {

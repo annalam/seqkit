@@ -20,8 +20,6 @@ outputs a new BAM file where duplicate reads have been flagged with the
 0x400 (\"PCR or optical duplicate\") flag. The input BAM file must be
 name-sorted.
 
-20 bp from each end of a DNA fragment are used as a fragment signature.
-
 When two or more redundant read pairs are identified, the software leaves one read pair unmarked, and marks the other redundant read pairs with the duplicate flag. If BASEQ information is available, the read pair with highest cumulative BASEQ is left unmarked. If BASEQ information is not available, the read pair with highest cumulative number of unambiguous nucleotides is left unmarked.
 ";
 
@@ -35,6 +33,35 @@ struct FragmentUMI {
 	signature_2: u16,   // 8 bases, 2 bits per base
 	umi: u32            // Max 16 bases, 2 bits per base
 }
+
+// Efficient hash table for storing information about which fragments have
+// been seen. Fragments are stored in 2^20 = 1,048,576 buckets.
+struct FragmentTable {
+	buckets: Vec<Vec<u64>>
+}
+
+impl FragmentTable {
+	pub fn new() -> FragmentTable {
+		let mut buckets = Vec::new();
+		for k in 0..1_048_576 { buckets.push(Vec::new()); }
+		FragmentTable { buckets }
+	}
+
+	// Returns TRUE if fragment is already in the table. Otherwise inserts
+	// the fragment into the table, and returns FALSE.
+	pub fn find_or_add(&mut self, signature: u64) -> bool {
+		let hash = (signature & 0b0000_0000_0011_1111_1111u64) | 
+			((signature >> 32) & 0b1111_1111_1100_0000_0000u64);
+		for found in &self.buckets[hash as usize] {
+			if *found == signature { return true; }
+		}
+		self.buckets[hash as usize].push(signature);
+		return false;
+	}
+}
+
+
+
 
 // Function for reading BAM records, with proper user-friendly messages.
 // Returns false after reading the last record, or if reading fails.
@@ -100,7 +127,7 @@ pub fn main() {
 	let mut read_2 = Record::new();
 
 	// TODO: Use a simpler hash function (modulo would be sufficient).
-	let mut seen_signatures: HashSet<u64> = HashSet::new();
+	let mut seen_fragments = FragmentTable::new();
 
 	// This variable only exists so that we can make the code robust towards
 	// a few missing reads in the BAM file. We can probably drop this and
@@ -170,12 +197,14 @@ pub fn main() {
 			(sig_1 as u64) | (sig_2 as u64) << 32
 		};
 
-		if seen_signatures.contains(&signature) {
+		if seen_fragments.find_or_add(signature) {
 			read_1.set_duplicate();
 			read_2.set_duplicate();
 			total_duplicates += 2;
 		} else {
-			seen_signatures.insert(signature);
+			// TODO: Use unset_duplicate() once rust-htslib is updated
+			read_1.set_flags(read_1.flags() & 0b1111_1101_1111_1111u16);
+			read_2.set_flags(read_2.flags() & 0b1111_1101_1111_1111u16);
 		}
 
 		out.write(&read_1).unwrap();

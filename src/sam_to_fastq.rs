@@ -138,8 +138,8 @@ fn write_reads<T: Write>(bam_path: &str, out_1: &mut T, out_2: &mut T,
 		}
 	}
 
-	// If we are left with any orphan reads for which a pair was not found, we add
-	// those to the prefix.fq.gz output file.
+	// If we are left with any orphan reads for which a pair was not found,
+	// we add those to the prefix.fq.gz output file.
 	for (qname, seq) in reads_1.iter().chain(reads_2.iter()) {
 		write_read(out_single, output_format, qname, &seq);
 	}

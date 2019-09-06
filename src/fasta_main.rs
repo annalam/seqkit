@@ -3,7 +3,7 @@ use std::env;
 
 #[macro_use] mod common;
 mod fasta_to_raw; mod fasta_simplify_read_ids;
-mod fasta_interleave;
+mod fasta_interleave; mod fasta_trim;
 mod fasta_trim_by_quality; mod fasta_mask_by_quality;
 mod fasta_mappability_track; mod fasta_add_barcode;
 mod fasta_demultiplex; mod fasta_convert_basespace;
@@ -17,6 +17,7 @@ Usage:
   fasta simplify read ids <fastq_file>
   fasta interleave <fastq_1> <fastq_2>
   fasta split into anchors <fastq> <anchor_len>
+  fasta trim <fastq_file>
   fasta trim by quality <fastq_file> <min_baseq>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
@@ -44,6 +45,8 @@ fn main() {
 		fasta_split_into_anchors::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
 		fasta_trim_by_quality::main();
+	} else if args.len() >= 2 && args[1] == "trim" {
+		fasta_trim::main();
 	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {
 		fasta_mask_by_quality::main();
     } else if args.len() >= 3 && args[1..3] == ["mappability", "track"] {

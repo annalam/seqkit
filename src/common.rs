@@ -3,9 +3,10 @@ use docopt::{Docopt, ArgvMap};
 use std::process::{Command, Stdio, ChildStdin};
 use std::fmt::Arguments;
 use std;
-use std::io::{stdin, BufRead, BufReader, Write};
 use std::fs::File;
-use rust_htslib::bam;
+use std::io::{stdin, BufRead, BufReader, Write};
+use std::os::unix::io::{FromRawFd, AsRawFd};
+use rust_htslib::bam::{self, Read};
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -39,7 +40,7 @@ impl PathArgs for ArgvMap {
 
 pub struct GzipWriter {
 	//gzip: Child
-	gzip: ChildStdin
+	gzip: ChildStdin      // TODO: Add BufWriter for improved performance
 }
 
 #[derive(Copy, Clone)]
@@ -109,12 +110,36 @@ impl FileReader {
 	}*/
 }
 
-pub fn open_bam(bam_path: &str) -> bam::Reader {
-	if bam_path == "-" {
-		bam::Reader::from_stdin().unwrap_or_else(
-			|_| error!("Failed to read BAM file from standard input."))
-	} else {
-		bam::Reader::from_path(&bam_path).unwrap_or_else(
-			|_| error!("Cannot open BAM file '{}'", bam_path))
+pub struct BamReader {
+	reader: bam::Reader,
+	record: bam::Record
+}
+
+impl BamReader {
+	pub fn open(path: &str) -> BamReader {
+		let reader = if path == "-" {
+			bam::Reader::from_stdin().unwrap_or_else(
+				|_| error!("Failed to read BAM file from standard input."))
+		} else {
+			bam::Reader::from_path(&path).unwrap_or_else(
+				|_| error!("Cannot open BAM file '{}'", path))
+		};
+		BamReader { reader, record: bam::Record::new() }
+	}
+
+	pub fn header(&self) -> bam::HeaderView {
+		self.reader.header().clone()
+	}
+}
+
+impl Iterator for BamReader {
+	type Item = bam::Record;
+
+	fn next(&mut self) -> Option<bam::Record> {
+		match self.reader.read(&mut self.record) {
+			Ok(true) => Some(self.record.clone()),
+			Ok(false) => None,
+			Err(e) => error!("Failed reading BAM record: {}", e)
+		}
 	}
 }

@@ -1,9 +1,8 @@
 
-use crate::common::{parse_args, PathArgs};
+use crate::common::{parse_args, PathArgs, BamReader};
 use std::collections::HashMap;
-use rust_htslib::bam;
-use rust_htslib::bam::Read;
 use rand::random;
+use rust_htslib::bam::{Header, Writer, Format, CompressionLevel};
 
 const USAGE: &str = "
 Usage:
@@ -22,20 +21,18 @@ pub fn main() {
 		error!("Subsampling fraction must be between 0 - 1.");
 	}
 
-	let mut bam = bam::Reader::from_path(&bam_path)
-		.unwrap_or_else(|_| error!("Could not open BAM file {}.", &bam_path));
-	let bam_header = bam.header().clone();
+	let mut bam = BamReader::open(&bam_path);
+	let header = bam.header();
 
-	let mut out = bam::Writer::from_stdout(
-		&bam::header::Header::from_template(&bam_header)).unwrap();
+	let mut out = Writer::from_stdout(
+		&Header::from_template(&header), Format::BAM).unwrap();
 
 	let mut total_reads: u64 = 0;
 	let mut kept_reads: u64 = 0;
 
 	let mut keep_mate: HashMap<Vec<u8>, bool> = HashMap::new();
 
-	for r in bam.records() {
-		let read = r.unwrap();
+	for read in bam {
 		if read.is_supplementary() { continue; }  // TODO: Warn user about this
 		
 		if read.is_paired() {

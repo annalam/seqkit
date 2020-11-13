@@ -1,8 +1,6 @@
 
-use crate::common::{parse_args, PathArgs, FileReader};
+use crate::common::{parse_args, PathArgs, FileReader, BamReader};
 use std::str;
-use rust_htslib::bam;
-use rust_htslib::bam::Read;
 
 const USAGE: &str = "
 Usage:
@@ -12,16 +10,15 @@ Options:
   --on-target=BED   Count on-target% for regions in BED file [optional]
 ";
 
-struct Region { start: i32, end: i32 }
+struct Region { start: i64, end: i64 }
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_path("<bam_file>");
 	let targets_path = args.get_path("--on-target");
 
-	let mut bam = bam::Reader::from_path(&bam_path)
-		.unwrap_or_else(|_| error!("Could not open BAM file {}.", &bam_path));
-	let bam_header = bam.header().clone();
+	let mut bam = BamReader::open(&bam_path);
+	let bam_header = bam.header();
 
 	// Each chromosome has its own vector of target regions. Chromosomes
 	// are identified by their numeric IDs in the BAM file.
@@ -44,8 +41,8 @@ pub fn main() {
 			let tid = bam_header.tid(cols[0].as_bytes()).unwrap_or_else(||
 				error!("Chromosome {} is listed in target region BED file, but is not found in BAM file.", cols[0]));
 			target_regions[tid as usize].push(Region {
-				start: cols[1].parse::<i32>().unwrap() + 1,
-				end: cols[2].parse::<i32>().unwrap()
+				start: cols[1].parse::<i64>().unwrap() + 1,
+				end: cols[2].parse::<i64>().unwrap()
 			});
 		}
 
@@ -60,8 +57,7 @@ pub fn main() {
 	let mut duplicate_reads: u64 = 0;
 	let mut on_target_reads: u64 = 0;
 
-	for r in bam.records() {
-		let read = r.unwrap();
+	for read in bam {
 		if read.is_secondary() || read.is_supplementary() { continue; }
 		total_reads += 1;
 		if read.is_unmapped() { continue; }
@@ -72,7 +68,7 @@ pub fn main() {
 		if target_regions.is_empty() == false {
 			// TODO: Handle spliced reads
 			let start = read.pos() + 1;
-			let end = read.cigar().end_pos().unwrap() + 1;
+			let end = read.cigar().end_pos() + 1;
 			for region in &target_regions[read.tid() as usize] {
 				if start <= region.end && end >= region.start {
 					on_target_reads += 1;

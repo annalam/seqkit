@@ -31,7 +31,7 @@ pub fn main() {
 	let mut fastq2 = FileReader::new(&args.get_str("<fastq_2>"));
 	let parallel = args.get_bool("--parallel");
 
-	let barcode_regex = Regex::new(r" BC:[ACGTNacgtn]+").unwrap();
+	let barcode_regex = Regex::new(r" BC:[ACGTNacgtn+]+").unwrap();
 
 	// Read the user-provided sample sheet into memory.
 	let mut samples = Vec::new();

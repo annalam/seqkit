@@ -1,10 +1,8 @@
 
-use crate::common::{parse_args, open_bam};
+use crate::common::{parse_args, BamReader};
 use std::str;
 use regex::Regex;
-use rust_htslib::bam;
-use rust_htslib::bam::{Read, header::Header};
-use rust_htslib::bam::record::{Record, Aux};
+use rust_htslib::bam::{Header, Writer, record::Aux, Format, CompressionLevel};
 
 const USAGE: &str = "
 Usage:
@@ -23,19 +21,16 @@ pub fn main() {
 
 	let tag_regex = Regex::new(r" [A-Z]+:\S*").unwrap();
 
-	let mut bam = open_bam(bam_path);
-	let header = bam.header().clone();
+	let mut bam = BamReader::open(&bam_path);
+	let header = bam.header();
 
-	let mode: &[u8] = match args.get_bool("--uncompressed") {
-		true => b"wbu", false => b"wb"
-	};
-	let mut out = bam::Writer::new(b"-", mode,
-		&Header::from_template(&header)).unwrap();
+	let mut out = Writer::from_stdout(
+		&Header::from_template(&header), Format::BAM).unwrap();
+	if args.get_bool("--uncompressed") {
+		out.set_compression_level(CompressionLevel::Uncompressed);
+	}
 
-	for r in bam.records() {
-		let mut read = r.unwrap_or_else(
-			|_| error!("Input BAM file ended prematurely."));
-
+	for mut read in bam {
 		let qname = read.qname().to_vec();
 		let mut parts = qname.split(|x| *x == b' ');
 		let qname_without_tags = parts.next().unwrap();

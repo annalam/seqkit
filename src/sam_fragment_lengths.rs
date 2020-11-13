@@ -1,7 +1,6 @@
 
-use crate::common::parse_args;
+use crate::common::{parse_args, BamReader};
 use std::str;
-use rust_htslib::bam;
 use rust_htslib::bam::Read;
 
 const USAGE: &str = "
@@ -10,6 +9,7 @@ Usage:
 
 Options:
   --max-frag-size=F     Maximum fragment size [default: 5000]
+  --reads=N             Finish after analyzing this many reads [default: Inf]
 ";
 
 pub fn main() {
@@ -17,12 +17,17 @@ pub fn main() {
 	let bam_path = args.get_str("<bam_file>");
 	let max_frag_size: usize =
 		args.get_str("--max-frag-size").parse().unwrap();
+	let sufficient_sample_size: usize = if args.get_str("--reads") == "Inf" {
+		std::usize::MAX
+	} else {
+		args.get_str("--reads").parse().unwrap()
+	};
 
 	let mut histogram: Vec<usize> = vec![0; max_frag_size + 1];
 
-	let mut bam = bam::Reader::from_path(&bam_path).unwrap();
-	for r in bam.records() {
-		let read = r.unwrap();
+	let mut total_reads: usize = 0;
+	let mut bam = BamReader::open(&bam_path);
+	for read in bam {
 		if read.is_paired() == false { continue; }
 		if read.is_first_in_template() == false { continue; }
 		if read.is_unmapped() || read.is_mate_unmapped() { continue; }
@@ -32,7 +37,10 @@ pub fn main() {
 
 		let frag_size = read.insert_size().abs() as usize;
 		if frag_size > max_frag_size { continue; }
+
+		total_reads += 1;
 		histogram[frag_size] += 1;
+		if total_reads >= sufficient_sample_size { break; }
     }
 
     for size in 1..max_frag_size+1 {

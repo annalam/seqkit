@@ -1,10 +1,8 @@
 
-use crate::common::{parse_args, GzipWriter, open_bam};
+use crate::common::{parse_args, GzipWriter, BamReader};
 use std::str;
 use std::collections::HashMap;
-use rust_htslib::bam;
-use rust_htslib::bam::{Read, header::Header};
-use rust_htslib::bam::record::Record;
+use rust_htslib::bam::{Header, Writer, record::Aux, Format, CompressionLevel};
 
 const USAGE: &str = "
 Usage:
@@ -35,24 +33,20 @@ pub fn main() {
 		error!("Running 'sam minimize' with --base-qualities but without the --tags flag is not yet supported.");
 	}
 
-	let mut bam = open_bam(bam_path);
-	let header = bam.header().clone();
+	let mut bam = BamReader::open(&bam_path);
+	let header = bam.header();
 
 	// These variables are used for QNAME simplification
 	let mut highest_id: u32 = 0;
 	let mut qname_to_id: HashMap<Vec<u8>, u32> = HashMap::new();
 
-	let mode: &[u8] = match args.get_bool("--uncompressed") {
-		true => b"wbu", false => b"wb"
-	};
-	//let mut out = bam::Writer::from_stdout(&Header::from_template(&header)).unwrap();
-	let mut out = bam::Writer::new(b"-", mode,
-		&Header::from_template(&header)).unwrap();
+	let mut out = Writer::from_stdout(
+		&Header::from_template(&header), Format::BAM).unwrap();
+	if args.get_bool("--uncompressed") {
+		out.set_compression_level(CompressionLevel::Uncompressed);
+	}
 
-	for r in bam.records() {
-		let mut read = r.unwrap_or_else(
-			|_| error!("Input BAM file ended prematurely."));
-
+	for mut read in bam {
 		let mut qname = read.qname().to_vec();
 
 		if minimize_qnames {
@@ -83,7 +77,7 @@ pub fn main() {
 			read.set_qname(&qname);
 		} else {
 			// The call to .set() removes all AUX fields
-			read.set(&qname, &cigar, &seq, &qual);
+			read.set(&qname, Some(&cigar), &seq, &qual);
 		}
 		out.write(&read).unwrap();
 	}

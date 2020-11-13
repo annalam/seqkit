@@ -43,7 +43,7 @@ pub fn main() {
 
 	let samtools_out = BufReader::new(samtools.stdout.unwrap());
 
-	let mut hist = vec![0; max_coverage + 1];
+	let mut hist = vec![0u64; max_coverage + 1];
 	for l in samtools_out.lines() {
 		let line = l.unwrap();
 		let mut cols = line.split('\t');

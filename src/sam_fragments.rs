@@ -1,10 +1,8 @@
 
-use crate::common::parse_args;
+use crate::common::{parse_args, BamReader};
 use std::str;
-use rust_htslib::bam;
-use rust_htslib::bam::Read;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   sam fragments [options] <bam_file>
 
@@ -16,18 +14,17 @@ Options:
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
-	let min_frag_size: i32 = args.get_str("--min-size").parse().unwrap();
-	let max_frag_size: i32 = args.get_str("--max-size").parse().unwrap();
+	let min_frag_size: i64 = args.get_str("--min-size").parse().unwrap();
+	let max_frag_size: i64 = args.get_str("--max-size").parse().unwrap();
 
-	let mut bam = bam::Reader::from_path(&bam_path).unwrap();
+	let mut bam = BamReader::open(&bam_path);
 
 	let mut chr_names: Vec<String> = Vec::new();
 	for name in bam.header().target_names() {
 		chr_names.push(str::from_utf8(name).unwrap().to_string());
 	}
 
-	for r in bam.records() {
-		let read = r.unwrap();
+	for read in bam {
 		if read.is_paired() == false { continue; }
 		if read.is_unmapped() || read.is_mate_unmapped() { continue; }
 		if read.is_duplicate() || read.is_secondary() { continue; }

@@ -23,7 +23,7 @@ pub fn main() {
 	while fastq.read_line(&mut line) {
 		// Find the sample barcode, formatted as BC:xxxx.
 		if let Some(hit) = sample_barcode_regex.find(&line) {
-			let sample_barcode = line[hit.start()+4..hit.end()].to_string();
+			let sample_barcode = line[hit.start()+9..hit.end()].to_string();
 			*sample_barcodes.entry(sample_barcode).or_insert(0) += 1;
 		}
 

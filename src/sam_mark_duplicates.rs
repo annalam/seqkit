@@ -120,8 +120,8 @@ pub fn main() {
 		&bam::Header::from_template(&header)).unwrap();
 
 	// Collect statistics on how many reads were classified as duplicates.
-	let mut total_reads = 0;
-	let mut total_duplicates = 0;
+	let mut total_reads: u64 = 0;
+	let mut total_duplicates: u64 = 0;
 
 	let mut read_1 = Record::new();
 	let mut read_2 = Record::new();

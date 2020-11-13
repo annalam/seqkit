@@ -1,12 +1,10 @@
 
-use crate::common::parse_args;
+use crate::common::{parse_args, BamReader};
 use std::str;
 use std::thread;
 use std::fs::{File, remove_file};
 use std::process::{Command, Stdio};
 use std::io::{BufReader, BufWriter, BufRead, Write};
-use rust_htslib::bam;
-use rust_htslib::bam::Read;
 
 const USAGE: &str = "
 Usage:
@@ -24,7 +22,7 @@ pub fn main() {
 	let min_mapq: u8 = args.get_str("--min-mapq").parse().unwrap_or_else(
 		|_| error!("--min-mapq must be an integer between 0 - 255."));
 
-	let bam = bam::Reader::from_path(&bam_path).unwrap();
+	let bam = BamReader::open(&bam_path);
 	let mut chr_names: Vec<String> = Vec::new();
 	for name in bam.header().target_names() {
 		chr_names.push(str::from_utf8(name).unwrap().to_string());
@@ -46,9 +44,8 @@ pub fn main() {
 	let mut bedtools_in = BufWriter::new(bedtools.stdin.unwrap());
 	let bedtools_out = BufReader::new(bedtools.stdout.unwrap());
 	thread::spawn(move || {
-		let mut bam = bam::Reader::from_path(&bam_path).unwrap();
-		for r in bam.records() {
-			let read = r.unwrap();
+		let mut bam = BamReader::open(&bam_path);
+		for read in bam {
 			if read.is_paired() == false { continue; }
 			if read.is_unmapped() || read.is_mate_unmapped() { continue; }
 			if read.is_duplicate() || read.is_secondary() { continue; }

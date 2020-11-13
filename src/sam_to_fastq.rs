@@ -1,11 +1,9 @@
 
-use crate::common::{parse_args, GzipWriter};
+use crate::common::{parse_args, GzipWriter, BamReader};
 use std::str;
 use std::io::Write;
 use std::collections::HashMap;
-use rust_htslib::bam;
-use rust_htslib::bam::Read;
-use rust_htslib::bam::record::Record;
+use rust_htslib::bam::Record;
 
 const USAGE: &str = "
 Usage:
@@ -94,19 +92,12 @@ pub fn main() {
 fn write_reads<T: Write>(bam_path: &str, out_1: &mut T, out_2: &mut T,
 	out_single: &mut T, output_format: OutputFormat) {
 
-	let mut bam = if bam_path == "-" {
-		bam::Reader::from_stdin().unwrap()
-	} else {
-		bam::Reader::from_path(&bam_path).unwrap_or_else(
-			|_| error!("Cannot open BAM file '{}'", bam_path))
-	};
+	let mut bam = BamReader::open(&bam_path);
 
 	let mut reads_1: HashMap<Box<str>, Box<str>> = HashMap::new();
 	let mut reads_2: HashMap<Box<str>, Box<str>> = HashMap::new();
 
-	for r in bam.records() {
-		let mut read = r.unwrap_or_else(
-			|_| error!("Input BAM file ended prematurely."));
+	for read in bam {
 		if read.is_secondary() || read.is_supplementary() { continue; }
 
 		let qname = str::from_utf8(read.qname()).unwrap();

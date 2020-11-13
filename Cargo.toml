@@ -4,17 +4,12 @@ version = "0.1.0"
 edition = "2018"
 authors = ["Matti Annala <matti.annala@uta.fi>"]
 
-# We have to use a modded version of rust-htslib-0.15, because
-# rust-htslib-0.22 appears to have a bug in Record::set() method which
-# causes malformatted output. We have also modified rust-htslib-0.15 to allow
-# uncompressed BAM output.
 [dependencies]
 docopt = "1.0"
 bio = "0.19"
-rust-htslib = { path = "rust-htslib-0.15-mod" }
+rust-htslib = { version = "0.31", default-features = false }
 regex = "1.0"
 rand = "0.5"
-hashbrown = "0.3"
 
 [[bin]]
 name = "fasta"

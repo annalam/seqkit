@@ -5,7 +5,7 @@ use std::env;
 mod sam_count; mod sam_fragments; mod sam_fragment_lengths;
 mod sam_statistics;
 mod sam_to_fastq; mod sam_subsample;
-mod sam_coverage_histogram;
+mod sam_coverage_histogram; mod sam_concatenate;
 mod sam_minimize; mod sam_tags_from_qname;
 mod sam_trim_qnames;
 mod sam_determine_sex;
@@ -18,6 +18,7 @@ Usage:
   sam coverage histogram <bam_file>
   sam statistics <bam_file>
   sam subsample <bam_file> <fraction>
+  sam concatenate <bam_files>...
   sam minimize <bam_file>
   sam tags from qname <bam_file>
   sam trim qnames <bam_file>
@@ -55,6 +56,8 @@ fn main() {
 		sam_to_fastq::main();
 	} else if args.len() >= 2 && args[1] == "subsample" {
 		sam_subsample::main();
+	} else if args.len() >= 2 && args[1] == "concatenate" {
+		sam_concatenate::main();
 	} else if args.len() >= 2 && args[1] == "minimize" {
 		sam_minimize::main();
 	} else if args.len() >= 4 && args[1..4] == ["tags", "from", "qname"] {

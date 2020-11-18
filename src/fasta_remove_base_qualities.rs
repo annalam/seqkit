@@ -18,7 +18,7 @@ pub fn main() {
 			print!(">{}", &line[1..]);   // FASTA format has '>' instead of '@'
 			fastq_file.read_line(&mut line);
 			print!("{}", line);
-			// Discard the per-base qualities, if present in the file
+			// Discard the per-base qualities
 			fastq_file.read_line(&mut line);
 			fastq_file.read_line(&mut line);
 		} else {

@@ -20,7 +20,7 @@ pub fn main() {
 		} else if line.starts_with('@') {
 			fasta_file.read_line(&mut line);
 			print!("{}", line);
-			// Discard the per-base qualities, if present in the file
+			// Discard per-base qualities
 			fasta_file.read_line(&mut line);
 			fasta_file.read_line(&mut line);
 		} else {

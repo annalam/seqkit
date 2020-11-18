@@ -34,7 +34,7 @@ pub fn main() {
 	for b in 0..bam_paths.len() {
 		let bam_path = bam_paths[b];
 		let mut bam = BamReader::open(bam_path);
-		let header = bam.header().clone();
+		//let header = bam.header().clone();
 		// TODO: Sanity check that headers are consistent.
 
 		let suffix = format!(".{}", b + 1).into_bytes();

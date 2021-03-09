@@ -13,6 +13,7 @@ Usage:
 Options:
   --frac-inside=F   Minimum overlap between read and region [default: 0.0]
   --min-mapq=N      Only count reads with MAPQ ≥ threshold [default: 0]
+  --single-end      Count reads, rather than paired end fragments
 ";
 
 pub fn main() {
@@ -21,6 +22,7 @@ pub fn main() {
 	let bed_path = args.get_str("<regions.bed>");
 	let min_mapq: u8 = args.get_str("--min-mapq").parse().unwrap_or_else(
 		|_| error!("--min-mapq must be an integer between 0 - 255."));
+	let single_end = args.get_bool("--single-end");
 
 	let bam = BamReader::open(&bam_path);
 	let mut chr_names: Vec<String> = Vec::new();
@@ -43,25 +45,44 @@ pub fn main() {
 
 	let mut bedtools_in = BufWriter::new(bedtools.stdin.unwrap());
 	let bedtools_out = BufReader::new(bedtools.stdout.unwrap());
-	thread::spawn(move || {
-		let mut bam = BamReader::open(&bam_path);
-		for read in bam {
-			if read.is_paired() == false { continue; }
-			if read.is_unmapped() || read.is_mate_unmapped() { continue; }
-			if read.is_duplicate() || read.is_secondary() { continue; }
-			if read.is_supplementary() { continue; }
-			if read.tid() != read.mtid() { continue; }
-			if read.mapq() < min_mapq { continue; }
+	if single_end == false {
+		// Analyze in paired end mode
+		thread::spawn(move || {
+			let mut bam = BamReader::open(&bam_path);
+			for read in bam {
+				if read.is_paired() == false { continue; }
+				if read.is_unmapped() || read.is_mate_unmapped() { continue; }
+				if read.is_duplicate() || read.is_secondary() { continue; }
+				if read.is_supplementary() { continue; }
+				if read.tid() != read.mtid() { continue; }
+				if read.mapq() < min_mapq { continue; }
 
-			// Only count each DNA fragment once.
-			if read.pos() > read.mpos() || (read.pos() == read.mpos() && read.is_first_in_template() == false) { continue; }
+				// Only count each DNA fragment once.
+				if read.pos() > read.mpos() || (read.pos() == read.mpos() && read.is_first_in_template() == false) { continue; }
 
-			let frag_size = read.insert_size().abs();
-			if frag_size > 5000 { continue; }
+				let frag_size = read.insert_size().abs();
+				if frag_size > 5000 { continue; }
 
-			write!(bedtools_in, "{}\t{}\t{}\n", chr_names[read.tid() as usize], read.pos(), read.pos() + frag_size);
-	    }
-    });
+				write!(bedtools_in, "{}\t{}\t{}\n", chr_names[read.tid() as usize], read.pos(), read.pos() + frag_size);
+		    }
+	    });
+	} else {
+		// Analyze in single end mode
+		thread::spawn(move || {
+			let mut bam = BamReader::open(&bam_path);
+			for read in bam {
+				if read.is_unmapped() { continue; }
+				if read.is_duplicate() || read.is_secondary() { continue; }
+				if read.is_supplementary() { continue; }
+				if read.mapq() < min_mapq { continue; }
+
+				let end_pos = read.cigar().end_pos();
+				if (end_pos - read.pos()).abs() > 5000 { continue; }
+
+				write!(bedtools_in, "{}\t{}\t{}\n", chr_names[read.tid() as usize], read.pos(), end_pos);
+		    }
+	    });
+	}
 
 	for l in bedtools_out.lines() {
 		let line = l.unwrap();

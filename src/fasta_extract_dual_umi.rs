@@ -59,12 +59,12 @@ pub fn main() {
 		umi += &seq_2[0..first_bases];
 
 		if fastq_format {
-			print!("{} RX:Z:{}\n{}+\n{}{} RX:Z:{}\n{}+\n{}",
+			print!("{} RX:{}\n{}+\n{}{} RX:{}\n{}+\n{}",
 				header_1.trim_end(), &umi, &seq_1[first_bases..],
 				&qual_1[first_bases..], header_2.trim_end(), &umi,
 				&seq_2[first_bases..], &qual_2[first_bases..])
 		} else {
-			print!("{} RX:Z:{}\n{}{} RX:Z:{}\n{}",
+			print!("{} RX:{}\n{}{} RX:{}\n{}",
 				header_1.trim_end(), &umi, &seq_1[first_bases..],
 				header_2.trim_end(), &umi, &seq_2[first_bases..])
 		}

@@ -2,6 +2,7 @@
 use std::env;
 
 #[macro_use] mod common;
+mod fasta_check;
 mod fasta_to_raw; mod fasta_simplify_read_ids;
 mod fasta_interleave; mod fasta_trim;
 mod fasta_trim_by_quality; mod fasta_trim_adapter;
@@ -15,6 +16,7 @@ mod fasta_consensus;
 
 const USAGE: &str = "
 Usage:
+  fasta check <fasta/fastq>
   fasta to raw <fasta/fastq>
   fasta remove base qualities <fastq>
   fasta simplify read ids <fastq_file>
@@ -35,11 +37,11 @@ Usage:
 ";
 
 fn main() {
-	// TODO: Use match args.as_slice() { [_, "detect"] => ... } after slice
-	// pattern matching stabilizes (see issue #23121).
 	let args: Vec<String> = env::args().collect();
 
-	if args.len() >= 3 && args[1..3] == ["to", "raw"] {
+	if args.len() >= 2 && args[1] == "check" {
+		fasta_check::main();
+	} else if args.len() >= 3 && args[1..3] == ["to", "raw"] {
 		fasta_to_raw::main();
 	} else if args.len() >= 4 && args[1..4] == ["remove", "base", "qualities"] {
 		fasta_remove_base_qualities::main();

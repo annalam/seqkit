@@ -30,7 +30,7 @@ pub fn main() {
 		// TODO: Add option for keeping the original fragment ID.
 		// print!("{}", header.split(' ').next().unwrap());
 
-		let barcode = header.trim_right().split(':').last().unwrap_or("");
+		let barcode = header.trim_end().split(':').last().unwrap_or("");
 		if !barcode.is_empty() { print!(" BC:{}", barcode); }
 		println!();
 

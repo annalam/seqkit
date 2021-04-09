@@ -8,6 +8,7 @@ mod sam_to_fastq; mod sam_subsample;
 mod sam_coverage_histogram; mod sam_concatenate;
 mod sam_minimize; mod sam_tags_from_qname;
 mod sam_trim_qnames;
+mod sam_mark_duplicates;
 
 const USAGE: &str = "
 Usage:
@@ -21,7 +22,7 @@ Usage:
   sam minimize <bam_file>
   sam tags from qname <bam_file>
   sam trim qnames <bam_file>
-  sam normalize umi <bam_file>
+  sam mark duplicates <bam_file>
 
 Extract reads from BAM files:
   sam to raw <bam_file> <out_prefix>
@@ -63,6 +64,8 @@ fn main() {
 		sam_tags_from_qname::main();
 	} else if args.len() >= 3 && args[1..3] == ["trim", "qnames"] {
 		sam_trim_qnames::main();
+	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
+		sam_mark_duplicates::main();
 	} else {
 		eprintln!("{}", USAGE);
 	}

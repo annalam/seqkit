@@ -3,7 +3,7 @@ use crate::common::{parse_args, GzipWriter, BamReader};
 use std::str;
 use std::collections::HashMap;
 use rust_htslib::bam;
-use rust_htslib::bam::{Read, header::Header, record::Record, Format, CompressionLevel};
+use rust_htslib::bam::{header::Header, record::Record, Format, CompressionLevel};
 
 const USAGE: &str = "
 Usage:

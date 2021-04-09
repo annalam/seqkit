@@ -6,7 +6,7 @@ use std;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::os::unix::io::{FromRawFd, AsRawFd};
-use rust_htslib::bam::{self, Read};
+use rust_htslib::bam::{self, Read, Header, HeaderView, Format};
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -139,7 +139,35 @@ impl Iterator for BamReader {
 		match self.reader.read(&mut self.record) {
 			Ok(true) => Some(self.record.clone()),
 			Ok(false) => None,
+			Err(bam::Error::TruncatedRecord) =>
+				error!("BAM file ended prematurely."),
+			Err(bam::Error::InvalidRecord) =>
+				error!("Invalid BAM record."),
 			Err(e) => error!("Failed reading BAM record: {}", e)
 		}
+	}
+}
+
+pub struct BamWriter {
+	writer: bam::Writer
+}
+
+impl BamWriter {
+	pub fn open(path: &str, header: &HeaderView, compressed: bool) -> BamWriter {
+		let writer = if path == "-" {
+			bam::Writer::from_stdout(&Header::from_template(&header),
+				Format::BAM).unwrap_or_else(|_|
+				error!("Could not write BAM records into standard output."))
+		} else {
+			bam::Writer::from_path(&path, &Header::from_template(&header),
+				Format::BAM).unwrap_or_else(
+				|_| error!("Cannot open BAM file '{}' for writing.", path))
+		};
+		BamWriter { writer }
+	}
+
+	pub fn write(&mut self, record: &bam::Record) {
+		self.writer.write(&record).unwrap_or_else(|_|
+			error!("Failed at writing BAM record."));
 	}
 }

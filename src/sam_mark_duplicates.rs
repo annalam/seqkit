@@ -135,6 +135,7 @@ fn find_clusters(reads: &mut VecDeque<Read>, curr_pos: u32) {
 		let mut best_score = reads[k].record.seq().len();
 		reads[k].record.set_duplicate();
 		reads[k].ready = true;
+		//eprintln!("Cluster: start {}, strand {}
 		for j in k+1..reads.len() {
 			if reads[j].ready == true { continue; }
 			if reads[j].record.pos() as u32 > reads[k].start_pos {

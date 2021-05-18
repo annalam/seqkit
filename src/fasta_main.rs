@@ -12,7 +12,6 @@ mod fasta_demultiplex;
 mod fasta_convert_basespace;
 mod fasta_statistics; mod fasta_remove_base_qualities;
 mod fasta_extract_dual_umi; mod fasta_split_into_anchors;
-mod fasta_consensus;
 
 const USAGE: &str = "
 Usage:
@@ -51,8 +50,6 @@ fn main() {
 		fasta_interleave::main();
 	} else if args.len() >= 4 && args[1..4] == ["split", "into", "anchors"] {
 		fasta_split_into_anchors::main();
-	} else if args.len() >= 3 && args[1..3] == ["trim", "adapter"] {
-		fasta_trim_adapter::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
 		fasta_trim_by_quality::main();
 	} else if args.len() >= 2 && args[1] == "trim" {
@@ -65,12 +62,8 @@ fn main() {
 		fasta_add_barcode::main();
 	} else if args.len() >= 4 && args[1..4] == ["extract", "dual", "umi"] {
 		fasta_extract_dual_umi::main();
-	} else if args.len() >= 2 && args[1] == "consensus" {
-		fasta_consensus::main();
 	} else if args.len() >= 3 && args[1..3] == ["convert", "basespace"] {
 		fasta_convert_basespace::main();
-	} else if args.len() >= 3 && args[1..3] == ["demultiplex", "spe"] {
-		fasta_demultiplex_spe::main();
 	} else if args.len() >= 2 && args[1] == "demultiplex" {
 		fasta_demultiplex::main();
 	} else if args.len() >= 2 && args[1] == "statistics" {

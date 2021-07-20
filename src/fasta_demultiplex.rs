@@ -1,6 +1,7 @@
 
 use crate::common::{parse_args, FileReader, GzipWriter, Compressor};
 use std::io::Write;
+use std::collections::HashMap;
 use std::str;
 use regex::Regex;
 
@@ -9,9 +10,11 @@ Usage:
   fasta demultiplex [options] <sample_sheet> <fastq_1> [<fastq_2>]
 
 Options:
-  --parallel   Use pigz (parallel gzip) for compression
+  --parallel      Use pigz (parallel gzip) for compression
+  --index1=FASTQ  Path to FASTQ file containing the first index (optional)
+  --index2=FASTQ  Path to FASTQ file containing the second index (optional)
+  --dry-run=N     Analyze N reads and generate table of indexes found in the run
 
-Description:
 Splits a pooled FASTQ file into multiple individual FASTQ files, based on a
 sample sheet. Each read in the pooled FASTQ file must carry a BC:xxxxxxxx
 field in its header.
@@ -20,12 +23,18 @@ field in its header.
 struct Sample {
 	name: String,
 	barcode: String,
-	output: Vec<GzipWriter>
+	output: Vec<GzipWriter>,
+	total_reads: u64
 }
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let parallel = args.get_bool("--parallel");
+	let dry_run: u64 = args.get_str("--dry-run").parse().unwrap_or(0);
+	if dry_run == 0 && args.get_str("--dry-run").is_empty() == false {
+		error!("In --dry-run=N, N must be 64-bit positive integer.");
+	}
+
 	let barcode_regex = Regex::new(r" BC:[ACGTNacgtn+]+").unwrap();
 
 	// Initialize the FASTQ readers
@@ -35,6 +44,15 @@ pub fn main() {
 		fastq.push(FileReader::new(&args.get_str("<fastq_2>")));
 	}
 	let paired_end = fastq.len() == 2;
+
+	// Initialize index readers (if the indexes are in separate FASTQ files)
+	let mut index_fastq: Vec<FileReader> = Vec::new();
+	if args.get_str("--index1").is_empty() == false {
+		index_fastq.push(FileReader::new(&args.get_str("--index1")));
+	}
+	if args.get_str("--index2").is_empty() == false {
+		index_fastq.push(FileReader::new(&args.get_str("--index2")));
+	}
 
 	// Read the user-provided sample sheet into memory.
 	eprintln!("Reading sample sheet...");
@@ -51,12 +69,14 @@ pub fn main() {
 		if barcode_len == 0 {
 			barcode_len = cols[1].len();
 		} else if cols[1].len() != barcode_len {
-			error!("Barcodes in sample sheet must be of same length.");
+			error!("Barcodes in sample sheet must all be of same length.");
 		}
 		let method = if parallel { Compressor::PIGZ } else { Compressor::GZIP };
 
 		let mut outputs: Vec<GzipWriter> = Vec::new();
-		if paired_end {
+		if dry_run > 0 {
+			// No output will be produced
+		} else if paired_end {
 			outputs.push(GzipWriter::with_method(
 				&format!("{}_1.fq.gz", name), method));
 			outputs.push(GzipWriter::with_method(
@@ -69,7 +89,8 @@ pub fn main() {
 		samples.push(Sample {
 			name: name.into(),
 			barcode: cols[1].into(),
-			output: outputs
+			output: outputs,
+			total_reads: 0
 		});
 	}
 
@@ -85,45 +106,82 @@ pub fn main() {
 	// TODO: Check that UMI-including barcodes do not clash with
 	// UMI-less barcodes in runs that contain both types of barcodes.
 
-	// TODO: Build a lookup table for (barcode -> sample) mappings.
-	/*let mut barcode_to_sample = vec![0; 4.pow(barcode_len)];
-	for b in 0..4.pow(barcode_len) {
-		for base in 0..barcode_len {
-			
-		}
-	}*/
+	// TODO: Build a hash table for (barcode -> sample) mappings. This hash
+	// table should also include one base mismatches as keys.
 
 	eprintln!("Starting demultiplexing in {} end mode...",
 		if paired_end { "paired" } else { "single" });
 	let mut total_reads: u64 = 0;
 	let mut identified_reads: u64 = 0;
+	let mut extra_barcodes: HashMap<String, u64> = HashMap::new();
 
+	let mut header = String::new();
 	let mut line = String::new();
 	let mut barcode = String::new();
 	let mut umi = String::new();
 
-	while fastq[0].read_line(&mut line) {
-		if !line.starts_with('@') {
-			error!("Invalid FASTQ header line:\n{}", line);
+	while fastq[0].read_line(&mut header) {
+		if !header.starts_with('@') {
+			error!("Invalid FASTQ header line:\n{}", header);
+		}
+		
+
+		barcode.clear();
+
+		// Read indexes from separate FASTQ files if requested
+		if index_fastq.is_empty() == false {
+			for ifq in &mut index_fastq {
+				if barcode.is_empty() == false { barcode += "+"; }
+				ifq.read_line(&mut line);
+				assert!(line.starts_with('@'));
+				ifq.read_line(&mut line);
+				barcode += line.trim_end();
+				ifq.read_line(&mut line);
+				assert!(line.starts_with('+'));
+				ifq.read_line(&mut line);
+			}
+		} else {
+			// Search for BC:xxxx format index in the FASTQ header.
+			let (start, end) = {
+				let hit = &barcode_regex.find(&header)
+					.unwrap_or_else(|| error!("No BC:xxxx field found."));
+				(hit.start(), hit.end())
+			};
+			barcode += &header[(start+4)..end];
+			header.drain(start..end);   // Remove BC:xxxx from header
 		}
 
-		// Find the sample barcode, formatted as BC:xxxx.
-		// Then remove it from the header.
-		// TODO: Extract the BC:xxx search into a function.
-		let (start, end) = {
-			let hit = &barcode_regex.find(&line)
-				.unwrap_or_else(|| error!("No BC:xxxx field found."));
-			(hit.start(), hit.end())
-		};
-		barcode.clear();
-		barcode += &line[(start+4)..end];
-		line.drain(start..end);
 		if barcode.len() != barcode_len {
 			error!("Barcode {} is of different length than barcodes in the sample sheet.", barcode);
 		}
 
+		// Carry out a simpler analysis if we are just doing a dry run
+		if dry_run > 0 {
+			if let Some(sample) = samples.iter_mut()
+				.find(|s| barcode_matches(&barcode, &s.barcode)) {
+				identified_reads += 1;
+				sample.total_reads += 1;
+			} else {
+				*extra_barcodes.entry(barcode.clone()).or_insert(0) += 1;
+			}
+
+			for _ in 0..3 { fastq[0].read_line(&mut line); }
+			if paired_end { for _ in 0..4 { fastq[1].read_line(&mut line); } }
+
+			total_reads += 1;
+			if total_reads >= dry_run { break };
+			continue;
+		}
+
 		if let Some(sample) = samples.iter_mut()
 			.find(|s| barcode_matches(&barcode, &s.barcode)) {
+
+			identified_reads += 1;
+
+			if dry_run > 0 {
+				sample.total_reads += 1;
+				continue;
+			}
 
 			// Extract UMI, if present
 			umi.clear();
@@ -132,27 +190,28 @@ pub fn main() {
 			}
 
 			// Write the first mate into the correct output FASTQ file
-			write!(sample.output[0], "{}", line.trim_right());
+			write!(sample.output[0], "{}", header.trim_right());
 			if !umi.is_empty() { write!(sample.output[0], " UMI:{}", umi); }
 			write!(sample.output[0], "\n");
 			for _ in 0..3 {
 				fastq[0].read_line(&mut line);
 				write!(sample.output[0], "{}", line);
 			}
-			identified_reads += 1;
 
 			// Handle the second mate (if present)
 			if paired_end {
 				fastq[1].read_line(&mut line);
 
-				// Remove BC:xxx field
-				let (start, end) = if let Some(hit) =
-					barcode_regex.find(&line) {
-					(hit.start(), hit.end())
-				} else {
-					(0, 0)
-				};
-				if end > 0 { line.drain(start..end); }
+				// Remove BC:xxx field, if present
+				if index_fastq.is_empty() {
+					let (start, end) = if let Some(hit) =
+						barcode_regex.find(&line) {
+						(hit.start(), hit.end())
+					} else {
+						(0, 0)
+					};
+					if end > 0 { line.drain(start..end); }
+				}
 
 				write!(sample.output[1], "{}", line.trim_right());
 				if !umi.is_empty() {
@@ -163,7 +222,6 @@ pub fn main() {
 					fastq[1].read_line(&mut line);
 					write!(sample.output[1], "{}", line);
 				}
-				identified_reads += 1;
 			}
 		} else {
 			// Must read all four lines even if we did not recognize the
@@ -174,10 +232,22 @@ pub fn main() {
 			}
 		}
 
-		total_reads += if paired_end { 2 } else { 1 };
+		total_reads += 1;
 	}
 
-	eprintln!("{} / {} ({:.1}%) reads carried a barcode matching one of the provided samples.", identified_reads, total_reads,
+	if dry_run > 0 {
+		eprintln!("Dry run completed with {} clusters. Barcodes found:",
+			total_reads);
+		let mut entries: Vec<(String, u64)> = samples.iter().map(|s| (s.name.clone(), s.total_reads)).collect();
+		entries.extend(extra_barcodes.into_iter());
+		entries.sort_by_key(|x| x.1);
+		entries.reverse();
+		for (barcode, count) in &entries[0..100] {
+			println!("- {}: {}", barcode, count);
+		}
+	}
+
+	eprintln!("{} / {} ({:.1}%) clusters carried a barcode matching one of the provided samples.", identified_reads, total_reads,
 		(identified_reads as f64) / (total_reads as f64) * 100.0);
 }
 

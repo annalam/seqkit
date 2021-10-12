@@ -11,6 +11,7 @@ Usage:
 
 Options:
   --uncompressed    Output in uncompressed BAM format
+  --ignore-umi      Ignore UMI stored in RX tag even if present
 
 Searches BAM files for DNA fragments that were read multiple times in
 sequencing. When such fragments are found, the highest quality read is
@@ -25,14 +26,15 @@ struct Read {
 	start_pos: u32,
 	strand: bool,
 	ready: bool,
-	fraglen: u16,
-	umi: Box<[u8]>,  // Consider inline string
+	fraglen: u16,      // Fragment length (TODO: make this 5'-to-5')
+	umi: Box<[u8]>,    // Consider inline string
 	record: Record
 }
 
 pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
+	let ignore_umi = args.get_bool("--ignore-umi");
 
 	let mut bam = BamReader::open(bam_path);
 	let mut out = BamWriter::open("-", &bam.header(), !args.get_bool("--uncompressed"));
@@ -77,9 +79,13 @@ pub fn main() {
 		let mut umi: Vec<u8> = Vec::new();
 		let mut fraglen = 0u16;
 		if !read.is_unmapped() {
-			if let Some(Aux::String(rx)) = read.aux(b"RX") {
-				umi.extend_from_slice(rx);
-			} else {
+			if !ignore_umi {
+				if let Some(Aux::String(rx)) = read.aux(b"RX") {
+					umi.extend_from_slice(rx);
+				}
+			}
+
+			if umi.is_empty() {
 				fraglen = min(read.insert_size().abs(), u16::MAX as i64) as u16;
 			}
 		}

@@ -29,7 +29,7 @@ pub fn main() {
 	for name in bam.header().target_names() {
 		chr_names.push(str::from_utf8(name).unwrap().to_string());
 	}
-	let index_path = format!(".{}.idx", bam_path);
+	let index_path = format!("{}.idx", bam_path);
 	let mut index_file = File::create(&index_path).unwrap();
 	for c in 0..chr_names.len() {
 		write!(&mut index_file, "{}\t{}\n", chr_names[c], bam.header().target_len(c as u32).unwrap());

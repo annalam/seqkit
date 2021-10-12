@@ -13,8 +13,9 @@ Options:
   --uncompressed    Output in uncompressed BAM format
 
 Concatenates two or more BAM files together, ensuring that read
-identifiers do not clash. Currently we simply add e.g. a '.1' suffix to all
-read identifiers found in the first BAM file.
+identifiers do not clash. Currently we simply add a '.1' suffix to all
+read identifiers found in the first BAM file, a '.2' suffix to all all
+read identifiers found in the second BAM file, and so forth.
 ";
 
 pub fn main() {

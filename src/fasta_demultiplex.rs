@@ -163,6 +163,7 @@ pub fn main() {
 				sample.total_reads += 1;
 			} else {
 				*extra_barcodes.entry(barcode.clone()).or_insert(0) += 1;
+				//eprintln!("{}", barcode);
 			}
 
 			for _ in 0..3 { fastq[0].read_line(&mut line); }

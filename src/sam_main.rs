@@ -8,7 +8,7 @@ mod sam_to_fastq; mod sam_subsample;
 mod sam_coverage_histogram; mod sam_concatenate;
 mod sam_minimize; mod sam_tags_from_qname;
 mod sam_trim_qnames;
-mod sam_mark_duplicates;
+mod sam_mark_duplicates; mod sam_recalculate_tlen;
 
 const USAGE: &str = "
 Usage:
@@ -20,6 +20,7 @@ Usage:
   sam subsample <bam_file> <fraction>
   sam concatenate <bam_files>...
   sam minimize <bam_file>
+  sam recalculate tlen <bam_file>
   sam tags from qname <bam_file>
   sam trim qnames <bam_file>
   sam mark duplicates <bam_file>
@@ -60,6 +61,8 @@ fn main() {
 		sam_concatenate::main();
 	} else if args.len() >= 2 && args[1] == "minimize" {
 		sam_minimize::main();
+	} else if args.len() >= 3 && args[1..3] == ["recalculate", "tlen"] {
+		sam_recalculate_tlen::main();
 	} else if args.len() >= 4 && args[1..4] == ["tags", "from", "qname"] {
 		sam_tags_from_qname::main();
 	} else if args.len() >= 3 && args[1..3] == ["trim", "qnames"] {

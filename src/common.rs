@@ -38,6 +38,14 @@ impl PathArgs for ArgvMap {
 	}
 }
 
+pub fn dirname(path: &str) -> String {
+	path.rsplitn(2, '/').last().unwrap().into()
+}
+
+pub fn filename(path: &str) -> String {
+	path.split('/').last().unwrap().into()
+}
+
 pub struct GzipWriter {
 	//gzip: Child
 	gzip: ChildStdin      // TODO: Add BufWriter for improved performance
@@ -170,4 +178,42 @@ impl BamWriter {
 		self.writer.write(&record).unwrap_or_else(|_|
 			error!("Failed at writing BAM record."));
 	}
+}
+
+
+
+// CODE FOR READING TARGET REGIONS INTO MEMORY
+pub struct Region {
+	pub chr: Box<str>,
+	pub start: usize,   // 0-based position (inclusive)
+	pub end: usize,     // 0-based position (exclusive)
+	pub name: Box<str>
+}
+
+// Read genomic regions into memory from a BED file
+pub fn read_regions(bed_path: &str) -> Vec<Region> {
+	let mut regions: Vec<Region> = Vec::new();
+	let mut regions_file = FileReader::new(bed_path);
+	let mut line = String::new();
+	while regions_file.read_line(&mut line) {
+		if line.starts_with('#') { continue; }
+		let cols: Vec<&str> = line.trim().split('\t').collect();
+		if cols.len() < 3 {
+			error!("Invalid region in BED file:\n{}", &line);
+		}
+
+		// Allow the fourth column to be missing.
+		let name = if cols.len() >= 4 { cols[3].into() } else { "".into() };
+		
+		regions.push(Region {
+			chr: cols[0].into(), name: name,
+			start: cols[1].parse().unwrap(), end: cols[2].parse().unwrap()
+		});
+	}
+	// Sort the regions by chromosome and then start position.
+	//regions.sort_unstable_by(|a, b| {
+	//	let ord = a.chr.cmp(&b.chr);
+	//	if ord == Ordering::Equal { a.start.cmp(&b.start) } else { ord }
+	//});
+	regions
 }

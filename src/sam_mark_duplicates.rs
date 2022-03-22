@@ -26,7 +26,7 @@ struct Read {
 	start_pos: u32,
 	strand: bool,
 	ready: bool,
-	fraglen: u16,      // Fragment length (TODO: make this 5'-to-5')
+	fraglen: u16,
 	umi: Box<[u8]>,    // Consider inline string
 	record: Record
 }

@@ -7,7 +7,7 @@ use rust_htslib::bam::Record;
 
 const USAGE: &str = "
 Usage:
-  sam recalculate tlen <bam_file>
+  sam recalculate tlen [options] <bam_file>
 
 Options:
   --uncompressed    Output in uncompressed BAM format

@@ -16,6 +16,7 @@ pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_path("<bam_file>");
 	let targets_path = args.get_path("--on-target");
+	let max_frag_len = 5000;
 
 	let mut bam = BamReader::open(&bam_path);
 	let bam_header = bam.header();
@@ -55,7 +56,9 @@ pub fn main() {
 	let mut total_reads: u64 = 0;
 	let mut aligned_reads: u64 = 0;
 	let mut duplicate_reads: u64 = 0;
-	let mut on_target_reads: u64 = 0;
+
+	let mut total_fragments: u64 = 0;
+	let mut on_target_fragments: u64 = 0;
 
 	for read in bam {
 		if read.is_secondary() || read.is_supplementary() { continue; }
@@ -65,20 +68,41 @@ pub fn main() {
 		aligned_reads += 1;
 		if read.is_duplicate() { duplicate_reads += 1; }
 
-		if target_regions.is_empty() == false {
-			// TODO: Handle spliced reads
-			let start = read.pos() + 1;
-			let end = read.cigar().end_pos() + 1;
-			for region in &target_regions[read.tid() as usize] {
-				if start <= region.end && end >= region.start {
-					on_target_reads += 1;
-					break;
-				}
+		// Check whether the fragment is on-target
+		if target_regions.is_empty() { continue; }
 
-				// Can stop searching since later regions cannot overlap
-				// with the alignment.
-				if region.start > end { break; }
+		let mut start = 0; let mut end = 0;
+		if read.is_paired() {
+			if read.is_mate_unmapped() { continue; }
+			if read.tid() != read.mtid() { continue; }
+
+			// Make sure that this read represents the left-most one. This also
+			// ensures that we only count each DNA fragment once.
+			if read.pos() > read.mpos() || (read.pos() == read.mpos() && read.is_first_in_template() == false) { continue; }
+
+			let tlen = read.insert_size().abs();
+			if tlen > max_frag_len { continue; }
+
+			start = read.pos() + 1;
+			end = start + tlen;
+		} else {
+			// TODO: Handle spliced reads
+			start = read.pos() + 1;
+			end = read.cigar().end_pos() + 1;
+		}
+
+		total_fragments += 1;
+
+		// TODO: Use an interval tree (faster)
+		for region in &target_regions[read.tid() as usize] {
+			if start <= region.end && end >= region.start {
+				on_target_fragments += 1;
+				break;
 			}
+
+			// Can stop searching since later regions cannot overlap
+			// with the alignment.
+			if region.start > end { break; }
 		}
     }
 
@@ -87,6 +111,6 @@ pub fn main() {
     println!("Duplicate reads: {} ({:.1}% of aligned reads)", duplicate_reads, duplicate_reads as f64 / aligned_reads as f64 * 100.0);
 
     if target_regions.is_empty() == false {
-    	println!("On-target reads: {} ({:.1}% of aligned reads)", on_target_reads, on_target_reads as f64 / aligned_reads as f64 * 100.0);
+    	println!("On-target: {:.1}%", on_target_fragments as f64 / total_fragments as f64 * 100.0);
     }
 }

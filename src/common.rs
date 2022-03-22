@@ -1,12 +1,13 @@
 
 use docopt::{Docopt, ArgvMap};
 use std::process::{Command, Stdio, ChildStdin};
-use std::fmt::Arguments;
+//use std::fmt::Arguments;
 use std;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, Write};
 use std::os::unix::io::{FromRawFd, AsRawFd};
 use rust_htslib::bam::{self, Read, Header, HeaderView, Format};
+use rust_htslib::bam::CompressionLevel;
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -162,7 +163,8 @@ pub struct BamWriter {
 
 impl BamWriter {
 	pub fn open(path: &str, header: &HeaderView, compressed: bool) -> BamWriter {
-		let writer = if path == "-" {
+
+		let mut writer = if path == "-" {
 			bam::Writer::from_stdout(&Header::from_template(&header),
 				Format::BAM).unwrap_or_else(|_|
 				error!("Could not write BAM records into standard output."))
@@ -171,6 +173,10 @@ impl BamWriter {
 				Format::BAM).unwrap_or_else(
 				|_| error!("Cannot open BAM file '{}' for writing.", path))
 		};
+		if compressed == false {
+			writer.set_compression_level(CompressionLevel::Uncompressed);
+		}
+
 		BamWriter { writer }
 	}
 

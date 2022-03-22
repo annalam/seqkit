@@ -74,8 +74,8 @@ pub fn main() {
 	if interleaved {
 		let mut out_1 = std::io::stdout();
 		let mut out_2 = std::io::stdout();
-		let mut out_single = std::io::stdout();
-		write_reads(&bam_path, &mut out_1, &mut out_2, &mut out_single, output_format);
+		let mut sink = std::io::sink();    // Discard single reads
+		write_reads(&bam_path, &mut out_1, &mut out_2, &mut sink, output_format);
 	} else {
 		let extension = match output_format {
 			RAW => "seq", FASTA => "fa", FASTQ => "fq"
@@ -89,8 +89,8 @@ pub fn main() {
 
 // Type-parameterized function that can handle writing to gzip files or to
 // stdout stream.
-fn write_reads<T: Write>(bam_path: &str, out_1: &mut T, out_2: &mut T,
-	out_single: &mut T, output_format: OutputFormat) {
+fn write_reads<T: Write, S: Write>(bam_path: &str, out_1: &mut T, out_2: &mut T,
+	out_single: &mut S, output_format: OutputFormat) {
 
 	let mut bam = BamReader::open(&bam_path);
 

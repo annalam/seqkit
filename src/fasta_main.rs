@@ -7,6 +7,7 @@ mod fasta_to_raw; mod fasta_simplify_read_ids;
 mod fasta_interleave; mod fasta_trim;
 mod fasta_trim_by_quality;
 mod fasta_mask_by_quality;
+mod fasta_gc_content;
 mod fasta_mappability_track; mod fasta_add_barcode;
 mod fasta_demultiplex;
 mod fasta_convert_basespace;
@@ -26,6 +27,7 @@ Usage:
   fasta trim adapter <fastq_file>
   fasta mask by quality <fastq_file> <min_baseq>
   fasta mappability track <genome>
+  fasta gc content <genome.fa> <regions.bed>
   fasta add barcode <fastq_file> <barcode_file> <barcode_format>
   fasta extract dual umi <interleaved_fastq>
   fasta consensus <interleaved_fastq>
@@ -58,6 +60,8 @@ fn main() {
 		fasta_mask_by_quality::main();
     } else if args.len() >= 3 && args[1..3] == ["mappability", "track"] {
 		fasta_mappability_track::main();
+	} else if args.len() >= 3 && args[1..3] == ["gc", "content"] {
+		fasta_gc_content::main();
 	} else if args.len() >= 3 && args[1..3] == ["add", "barcode"] {
 		fasta_add_barcode::main();
 	} else if args.len() >= 4 && args[1..4] == ["extract", "dual", "umi"] {

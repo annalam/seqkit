@@ -30,10 +30,9 @@ pub fn main() {
 		if read.is_duplicate() || read.is_secondary() { continue; }
 		if read.is_supplementary() { continue; }
 		if read.tid() != read.mtid() { continue; }
-
-		if read.pos() > read.mpos() || (read.pos() == read.mpos() && !read.is_first_in_template()) {
-			continue;
-		}
+		if read.is_reverse() || !read.is_mate_reverse() { continue; }
+		if read.is_quality_check_failed() { continue; }
+		// TODO: add support for non-converging read pair orientation
 
 		let frag_size = read.insert_size().abs();
 		if frag_size > max_frag_size || frag_size < min_frag_size { continue; }

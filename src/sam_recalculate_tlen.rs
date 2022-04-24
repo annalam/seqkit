@@ -84,6 +84,9 @@ pub fn main() {
 			}
 		}
 
+		// Note for large BAM files the memory usage can get quite high
+		// since we try to preserve the order of BAM records, and don't
+		// write records into the output stream until a mate has been found.
 		while !reads.is_empty() && reads[0].ready {
 			let new_tlen = reads[0].tlen as i64;
 			reads[0].record.set_insert_size(new_tlen);
@@ -91,5 +94,20 @@ pub fn main() {
 			reads.pop_front();
 			reads_written += 1;
 		}
+	}
+
+	// If there are any remaining reads, it indicates that some mates were
+	// missing from the BAM file. In that scenario, we skip the reads that
+	// had a missing mate, and write out the other reads.
+	for mut read in reads {
+		if read.ready == false {
+			eprintln!("Read {} discarded due to missing mate.", str::from_utf8(read.record.qname()).unwrap());
+			continue;
+		}
+
+		let new_tlen = read.tlen as i64;
+		read.record.set_insert_size(new_tlen);
+		out.write(&read.record);
+		//reads_written += 1;
 	}
 }

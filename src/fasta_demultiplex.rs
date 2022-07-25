@@ -103,12 +103,6 @@ pub fn main() {
 		}
 	}
 
-	// TODO: Check that UMI-including barcodes do not clash with
-	// UMI-less barcodes in runs that contain both types of barcodes.
-
-	// TODO: Build a hash table for (barcode -> sample) mappings. This hash
-	// table should also include one base mismatches as keys.
-
 	eprintln!("Starting demultiplexing in {} end mode...",
 		if paired_end { "paired" } else { "single" });
 	let mut total_reads: u64 = 0;
@@ -152,37 +146,55 @@ pub fn main() {
 		}
 
 		if barcode.len() != barcode_len {
-			error!("Barcode {} is of different length than barcodes in the sample sheet.", barcode);
+			error!("Sequenced barcode {} is of different length ({} nt) than barcodes in the sample sheet ({} nt).", barcode, barcode.len(), barcode_len);
 		}
 
-		// Carry out a simpler analysis if we are just doing a dry run
-		if dry_run > 0 {
-			if let Some(sample) = samples.iter_mut()
-				.find(|s| barcode_matches(&barcode, &s.barcode)) {
+		// Find the sample sheet barcode best matching the sequenced barcode,
+		// allowing for one base mismatch.
+		let mut best_sample: usize = 0;
+		let mut equally_fine_sample: usize = 0;
+		let mut lowest_diff = usize::MAX;
+		for s in 0..samples.len() {
+			let diff = barcode_diff(&barcode.as_bytes(), &samples[s].barcode.as_bytes());
+			if diff < lowest_diff {
+				lowest_diff = diff;
+				best_sample = s;
+				equally_fine_sample = s;
+			} else if diff == lowest_diff {
+				equally_fine_sample = s;   // We have two equally good samples
+			}
+		}
+
+		let MAX_BARCODE_DIFFERENCE: usize = 1;
+		total_reads += 1;
+		let mut write_read_out = false;
+
+		if lowest_diff <= MAX_BARCODE_DIFFERENCE {
+			if best_sample == equally_fine_sample {
+				// If one sample was unambiguously the closest match to the
+				// sequenced barcode, we assign the read to that sample.
+				let sample = &mut samples[best_sample];
 				identified_reads += 1;
 				sample.total_reads += 1;
+				write_read_out = !(dry_run > 0);
+
 			} else {
-				*extra_barcodes.entry(barcode.clone()).or_insert(0) += 1;
-				//eprintln!("{}", barcode);
+				// If multiple sample sheet barcodes matched equally well,
+				// report the ambiguity to the user.	
+				eprintln!("WARNING: Sequenced barcode {} was an equally good match ({} mismatches) for samples {} ({}) and {} ({}), and was therefore not assigned to any sample.",
+					&barcode, lowest_diff, &samples[best_sample].name,
+					&samples[best_sample].barcode,
+					&samples[equally_fine_sample].name,
+					&samples[equally_fine_sample].barcode);
 			}
-
-			for _ in 0..3 { fastq[0].read_line(&mut line); }
-			if paired_end { for _ in 0..4 { fastq[1].read_line(&mut line); } }
-
-			total_reads += 1;
-			if total_reads >= dry_run { break };
-			continue;
+		} else if dry_run > 0 {
+			// If no good matches were found at all, and we are in dry run
+			// mode, store the unmatched barcode.
+			*extra_barcodes.entry(barcode.clone()).or_insert(0) += 1;
 		}
 
-		if let Some(sample) = samples.iter_mut()
-			.find(|s| barcode_matches(&barcode, &s.barcode)) {
-
-			identified_reads += 1;
-
-			if dry_run > 0 {
-				sample.total_reads += 1;
-				continue;
-			}
+		if write_read_out {
+			let sample = &mut samples[best_sample];
 
 			// Extract UMI, if present
 			umi.clear();
@@ -233,7 +245,7 @@ pub fn main() {
 			}
 		}
 
-		total_reads += 1;
+		if dry_run > 0 && total_reads >= dry_run { break; };
 	}
 
 	if dry_run > 0 {
@@ -252,7 +264,15 @@ pub fn main() {
 		(identified_reads as f64) / (total_reads as f64) * 100.0);
 }
 
-fn barcode_matches(observed: &str, candidate: &str) -> bool {
-	observed.chars().zip(candidate.chars()).all(
-		|x| x.0 == x.1 || x.1 == 'N' || x.1 == 'U')
+// Compares an observed barcode against a barcode found in the sample sheet,
+// and returns the number of base positions where they differ.
+fn barcode_diff(observed: &[u8], candidate: &[u8]) -> usize {
+	assert!(observed.len() == candidate.len());
+	let mut mismatches: usize = 0;
+	for k in 0..observed.len() {
+		if candidate[k] == b'N' || candidate[k] == b'U' { continue; }
+		if observed[k] != candidate[k] { mismatches += 1; }
+	}
+	mismatches
 }
+

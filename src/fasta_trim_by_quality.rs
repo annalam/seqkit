@@ -28,7 +28,7 @@ pub fn main() {
 		let mut total: i32 = -50;
 		let mut lowest_total: i32 = total;
 
-		let mut k: usize = qual.trim_right().len();
+		let mut k: usize = qual.trim_end().len();
 		let mut lowest_k = k;
 		while k > 0 {
 			k -= 1;

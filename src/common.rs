@@ -1,11 +1,9 @@
 
 use docopt::{Docopt, ArgvMap};
 use std::process::{Command, Stdio, ChildStdin};
-//use std::fmt::Arguments;
 use std;
 use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, Write};
-use std::os::unix::io::{FromRawFd, AsRawFd};
 use rust_htslib::bam::{self, Read, Header, HeaderView, Format};
 use rust_htslib::bam::CompressionLevel;
 
@@ -82,12 +80,12 @@ impl Write for GzipWriter {
 }
 
 pub struct FileReader {
-	bufread: Box<BufRead>
+	bufread: Box<dyn BufRead>
 }
 
 impl FileReader {
 	pub fn new(path: &str) -> FileReader {
-		let bufread: Box<BufRead> = if path == "-" {
+		let bufread: Box<dyn BufRead> = if path == "-" {
 			Box::new(BufReader::new(stdin()))
 		} else {
 			let file = File::open(path).unwrap_or_else(
@@ -216,10 +214,5 @@ pub fn read_regions(bed_path: &str) -> Vec<Region> {
 			start: cols[1].parse().unwrap(), end: cols[2].parse().unwrap()
 		});
 	}
-	// Sort the regions by chromosome and then start position.
-	//regions.sort_unstable_by(|a, b| {
-	//	let ord = a.chr.cmp(&b.chr);
-	//	if ord == Ordering::Equal { a.start.cmp(&b.start) } else { ord }
-	//});
 	regions
 }

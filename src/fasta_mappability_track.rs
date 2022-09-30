@@ -72,7 +72,7 @@ pub fn main() {
             let mapq: f64 = cols[4].parse::<f64>().unwrap();
             let mappability = format!("{:.*}", 3, 1.0 - (10f64).powf(-mapq / 10.0));
 
-            println!("{}\t{}", &window.trim_right_matches(':'), &mappability);
+            println!("{}\t{}", &window.trim_end_matches(':'), &mappability);
         } else { continue  }
 
     }

@@ -30,7 +30,7 @@ pub fn main() {
 			break;    // End of file
 		}
 
-		print!("{} BC:{}\n", header.trim_right(), barcode.trim_right());
+		print!("{} BC:{}\n", header.trim_end(), barcode.trim_end());
 
 		if header.starts_with('@') {
 			fastq.read_line(&mut line); print!("{}", line);

@@ -1,8 +1,7 @@
 
-use crate::common::{parse_args, GzipWriter, BamReader, BamWriter};
+use crate::common::{parse_args, BamReader, BamWriter};
 use std::str;
 use std::collections::HashMap;
-use rust_htslib::bam::{Header, Writer, record::Aux, Format, CompressionLevel};
 
 const USAGE: &str = "
 Usage:
@@ -40,7 +39,7 @@ pub fn main() {
 	let mut highest_id: u32 = 0;
 	let mut qname_to_id: HashMap<Vec<u8>, u32> = HashMap::new();
 
-	let mut bam = BamReader::open(&bam_path);
+	let bam = BamReader::open(&bam_path);
 	let mut out = BamWriter::open("-", &bam.header(), !args.get_bool("--uncompressed"));
 
 	for mut read in bam {

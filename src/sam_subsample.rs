@@ -2,7 +2,7 @@
 use crate::common::{parse_args, PathArgs, BamReader};
 use std::collections::HashMap;
 use rand::random;
-use rust_htslib::bam::{Header, Writer, Format, CompressionLevel};
+use rust_htslib::bam::{Header, Writer, Format};
 
 const USAGE: &str = "
 Usage:
@@ -21,7 +21,7 @@ pub fn main() {
 		error!("Subsampling fraction must be between 0 - 1.");
 	}
 
-	let mut bam = BamReader::open(&bam_path);
+	let bam = BamReader::open(&bam_path);
 	let header = bam.header();
 
 	let mut out = Writer::from_stdout(

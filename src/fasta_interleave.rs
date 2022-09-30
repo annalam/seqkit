@@ -1,7 +1,6 @@
 
 use crate::common::{parse_args, FileReader};
 use std::str;
-use std::io::Write;
 
 const USAGE: &str = "
 Usage:

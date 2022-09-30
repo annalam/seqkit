@@ -21,7 +21,7 @@ pub fn main() {
 
 	let tag_regex = Regex::new(r" [A-Z]+:\S*").unwrap();
 
-	let mut bam = BamReader::open(&bam_path);
+	let bam = BamReader::open(&bam_path);
 	let header = bam.header();
 
 	let mut out = Writer::from_stdout(

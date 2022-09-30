@@ -12,7 +12,7 @@ pub fn main() {
 	let args = parse_args(USAGE);
 	let bam_path = args.get_str("<bam_file>");
 
-	let mut bam = BamReader::open(&bam_path);
+	let bam = BamReader::open(&bam_path);
 	let header = bam.header();
 
 	let mut out = Writer::from_stdout(&Header::from_template(&header), Format::BAM).unwrap();

@@ -9,9 +9,11 @@ mod sam_coverage_histogram; mod sam_concatenate;
 mod sam_minimize; mod sam_tags_from_qname;
 mod sam_trim_qnames;
 mod sam_mark_duplicates; mod sam_recalculate_tlen;
+mod sam_consensus;
 
 const USAGE: &str = "
 Usage:
+  sam consensus <bam_file>
   sam count <bam_file> <regions.bed>
   sam fragments <bam_file>
   sam fragment lengths <bam_file>
@@ -69,6 +71,8 @@ fn main() {
 		sam_trim_qnames::main();
 	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {
 		sam_mark_duplicates::main();
+	} else if args.len() >= 2 && args[1] == "consensus" {
+		sam_consensus::main();
 	} else {
 		eprintln!("{}", USAGE);
 	}

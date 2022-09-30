@@ -2,8 +2,8 @@
 use crate::common::{parse_args, BamReader, BamWriter};
 use std::str;
 use std::collections::VecDeque;
-use std::cmp::{min, max};
-use rust_htslib::bam::record::{Record, Seq, Aux};
+use std::cmp::min;
+use rust_htslib::bam::record::{Record, Aux};
 
 const USAGE: &str = "
 Usage:
@@ -36,7 +36,7 @@ pub fn main() {
 	let bam_path = args.get_str("<bam_file>");
 	let ignore_umi = args.get_bool("--ignore-umi");
 
-	let mut bam = BamReader::open(bam_path);
+	let bam = BamReader::open(bam_path);
 	let mut out = BamWriter::open("-", &bam.header(), !args.get_bool("--uncompressed"));
 
 	// Collect statistics on how many reads were classified as duplicates.

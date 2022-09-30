@@ -1,7 +1,6 @@
 
 use crate::common::{parse_args, BamReader};
 use std::str;
-use rust_htslib::bam::Read;
 
 const USAGE: &str = "
 Usage:

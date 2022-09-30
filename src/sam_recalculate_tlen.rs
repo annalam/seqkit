@@ -1,7 +1,6 @@
 
-use crate::common::{parse_args, GzipWriter, BamReader, BamWriter};
+use crate::common::{parse_args, BamReader, BamWriter};
 use std::str;
-use std::io::Write;
 use std::collections::{HashMap, VecDeque};
 use rust_htslib::bam::Record;
 
@@ -30,7 +29,7 @@ pub fn main() {
 	let max_frag_len: i64 = args.get_str("--max-len").parse().unwrap_or(0);
 	if max_frag_len <= 0 { error!("--max-len must be a positive integer."); }
 
-	let mut bam = BamReader::open(&bam_path);
+	let bam = BamReader::open(&bam_path);
 	let mut out = BamWriter::open("-", &bam.header(), !args.get_bool("--uncompressed"));
 
 	// In order to preserve the order of SAM records, we need to maintain

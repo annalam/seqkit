@@ -1,39 +1,43 @@
 
+#![allow(unused_must_use)]
+
 use std::env;
 
 #[macro_use] mod common;
 mod sam_count; mod sam_fragments; mod sam_fragment_lengths;
 mod sam_statistics;
 mod sam_to_fastq; mod sam_subsample;
-mod sam_coverage_histogram; mod sam_concatenate;
-mod sam_minimize; mod sam_tags_from_qname;
+mod sam_coverage_histogram; mod sam_merge;
+mod sam_minimize; mod sam_tags_from_qname; mod sam_qname_from_tags;
 mod sam_trim_qnames;
-mod sam_mark_duplicates; mod sam_recalculate_tlen;
+mod sam_mark_duplicates;
+mod sam_consensus;
+mod sam_gc_histogram;
 mod sam_consensus;
 
 const USAGE: &str = "
 Usage:
+  sam merge <bam_files>...
   sam consensus <bam_file>
   sam count <bam_file> <regions.bed>
+  sam coverage histogram <bam_file>
   sam fragments <bam_file>
   sam fragment lengths <bam_file>
-  sam coverage histogram <bam_file>
-  sam statistics <bam_file>
-  sam subsample <bam_file> <fraction>
-  sam concatenate <bam_files>...
-  sam minimize <bam_file>
-  sam recalculate tlen <bam_file>
-  sam tags from qname <bam_file>
-  sam trim qnames <bam_file>
   sam mark duplicates <bam_file>
+  sam minimize <bam_file>
+  sam statistics <bam_file>
+  sam subsample <bam_file> <fraction>  
+  sam tags from qname <bam_file>
+  sam qname from tags <bam_file>
+  sam trim qnames <bam_file>  
 
-Extract reads from BAM files:
-  sam to raw <bam_file> <out_prefix>
+Extract reads from BAM files:  
   sam to fasta <bam_file> <out_prefix>
-  sam to fastq <bam_file> <out_prefix>
-  sam to interleaved raw <bam_file>
+  sam to fastq <bam_file> <out_prefix>  
   sam to interleaved fasta <bam_file>
   sam to interleaved fastq <bam_file>
+  sam to interleaved raw <bam_file>
+  sam to raw <bam_file> <out_prefix>
 ";
 
 fn main() {
@@ -59,14 +63,16 @@ fn main() {
 		sam_to_fastq::main();
 	} else if args.len() >= 2 && args[1] == "subsample" {
 		sam_subsample::main();
-	} else if args.len() >= 2 && args[1] == "concatenate" {
-		sam_concatenate::main();
+	} else if args.len() >= 2 && args[1] == "merge" {
+		sam_merge::main();
 	} else if args.len() >= 2 && args[1] == "minimize" {
 		sam_minimize::main();
 	} else if args.len() >= 3 && args[1..3] == ["recalculate", "tlen"] {
 		sam_recalculate_tlen::main();
 	} else if args.len() >= 4 && args[1..4] == ["tags", "from", "qname"] {
 		sam_tags_from_qname::main();
+	} else if args.len() >= 4 && args[1..4] == ["qname", "from", "tags"] {
+		sam_qname_from_tags::main();
 	} else if args.len() >= 3 && args[1..3] == ["trim", "qnames"] {
 		sam_trim_qnames::main();
 	} else if args.len() >= 3 && args[1..3] == ["mark", "duplicates"] {

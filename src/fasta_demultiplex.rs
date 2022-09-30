@@ -203,7 +203,7 @@ pub fn main() {
 			}
 
 			// Write the first mate into the correct output FASTQ file
-			write!(sample.output[0], "{}", header.trim_right());
+			write!(sample.output[0], "{}", header.trim_end());
 			if !umi.is_empty() { write!(sample.output[0], " UMI:{}", umi); }
 			write!(sample.output[0], "\n");
 			for _ in 0..3 {
@@ -226,7 +226,7 @@ pub fn main() {
 					if end > 0 { line.drain(start..end); }
 				}
 
-				write!(sample.output[1], "{}", line.trim_right());
+				write!(sample.output[1], "{}", line.trim_end());
 				if !umi.is_empty() {
 					write!(sample.output[1], " UMI:{}", umi);
 				}

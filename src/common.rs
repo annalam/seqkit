@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::{stdin, BufRead, BufReader, Write};
 use rust_htslib::bam::{self, Read, Header, HeaderView, Format};
 use rust_htslib::bam::CompressionLevel;
+use smartstring::{SmartString, LazyCompact};
 
 macro_rules! error {
 	($($arg:tt)+) => ({
@@ -80,7 +81,7 @@ impl Write for GzipWriter {
 }
 
 pub struct FileReader {
-	bufread: Box<dyn BufRead>
+	pub bufread: Box<dyn BufRead>
 }
 
 impl FileReader {
@@ -188,10 +189,10 @@ impl BamWriter {
 
 // CODE FOR READING TARGET REGIONS INTO MEMORY
 pub struct Region {
-	pub chr: Box<str>,
-	pub start: usize,   // 0-based position (inclusive)
-	pub end: usize,     // 0-based position (exclusive)
-	pub name: Box<str>
+	pub chr: SmartString<LazyCompact>,
+	pub start: u32,   // 0-based position (inclusive)
+	pub end: u32      // 0-based position (exclusive)
+	//pub name: Box<str>
 }
 
 // Read genomic regions into memory from a BED file
@@ -207,10 +208,10 @@ pub fn read_regions(bed_path: &str) -> Vec<Region> {
 		}
 
 		// Allow the fourth column to be missing.
-		let name = if cols.len() >= 4 { cols[3].into() } else { "".into() };
+		//let name = if cols.len() >= 4 { cols[3].into() } else { "".into() };
 		
 		regions.push(Region {
-			chr: cols[0].into(), name: name,
+			chr: cols[0].into(), //name: name,
 			start: cols[1].parse().unwrap(), end: cols[2].parse().unwrap()
 		});
 	}

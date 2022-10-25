@@ -23,7 +23,7 @@ pub fn main() {
 	let bam_path = args.get_str("<bam_file>").to_string();
 	let min_mapq: u8 = args.get_str("--min-mapq").parse().unwrap_or_else(
 		|_| error!("--min-mapq must be an integer between 0 - 255."));
-	let max_frag_len: usize = args.get_str("--max-frag-len").parse().unwrap_or_else(|_| error!("--max-frag-len must be an integer."));
+	let max_frag_len: u32 = args.get_str("--max-frag-len").parse().unwrap_or_else(|_| error!("--max-frag-len must be an integer."));
 	let single_end = args.get_bool("--single-end");
 	let count_centers = args.get_bool("--center");
 
@@ -35,7 +35,7 @@ pub fn main() {
 	eprintln!("Counting {}...",
 		if single_end { "reads" } else { "DNA fragments" });
 	let bam = BamReader::open(&bam_path);
-	let chr_names: Vec<Box<str>> = bam.header().target_names().iter()
+	let chr_names: Vec<String> = bam.header().target_names().iter()
 		.map(|name| str::from_utf8(name).unwrap().into()).collect();
 
 	let mut prev_chr: i32 = -1;
@@ -70,9 +70,9 @@ pub fn main() {
 		}
 		prev_pos = read.pos();
 
-		let mut start = read.pos() as usize;       // 0-based inclusive start
+		let mut start = read.pos() as u32;      // 0-based inclusive start
 		let mut end = if single_end {
-			read.cigar().end_pos() as usize    // 0-based exclusive end
+			read.cigar().end_pos() as u32       // 0-based exclusive end
 		} else {
 			if read.is_paired() == false { continue; }
 			if read.is_mate_unmapped() { continue; }
@@ -87,7 +87,7 @@ pub fn main() {
 			// have the same left-edge position, we ignore the second mate.
 			if read.pos() > read.mpos() || (read.pos() == read.mpos() && read.is_first_in_template() == false) { continue; }
 
-			let insert_size = read.insert_size().abs() as usize;
+			let insert_size = read.insert_size().abs() as u32;
 			if insert_size < 20 { continue; }
 
 			start + insert_size                // 0-based exclusive end
@@ -110,7 +110,7 @@ pub fn main() {
 		// Remove regions from the beginning of the deque if their right edge
 		// is already behind us.
 		while chr_regions.is_empty() == false &&
-			regions[chr_regions[0]].end < prev_pos as usize {
+			regions[chr_regions[0]].end < prev_pos as u32 {
 			chr_regions.pop_front();
 		} 
 

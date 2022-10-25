@@ -18,7 +18,7 @@ pub fn main() {
 			else if line.starts_with('>') { 2 }
 			else { error!("Line is not FASTA/FASTQ format: {}", line); };
 		print!("{}", line);
-		for k in 0..lines-1 {
+		for _ in 0..lines-1 {
 			fastq_1.read_line(&mut line); print!("{}", line);
 		}
 
@@ -28,7 +28,7 @@ pub fn main() {
 			error!("Input files do not share a consistent format.");
 		}
 		print!("{}", line);
-		for k in 0..lines-1 {
+		for _ in 0..lines-1 {
 			fastq_2.read_line(&mut line); print!("{}", line);
 		}
 	}

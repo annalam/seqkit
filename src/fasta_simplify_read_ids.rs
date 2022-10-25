@@ -12,9 +12,8 @@ Options:
   --discard-umi      Remove \"UMI:\" tags from read identifiers, if present
 ";
 
-
-const ALPHANUMERIC: &str =
-	"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
+//const ALPHANUMERIC: &str =
+//	"0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 fn alphanumeric_id(read_num: usize) -> String { "".into() }
 

@@ -7,7 +7,7 @@ use std::io::{BufReader, BufWriter, BufRead, Write};
 use std::fs::File;
 use bio::io::fasta;
 
-const USAGE: &'static str = "
+const USAGE: &str = "
 Usage:
   fasta mappability track [options] <genome>
 
@@ -83,7 +83,7 @@ pub fn main() {
 
 /// Compute mapping quality for reference genome
 /// using moving window of given size
-fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size: usize, sliding: bool) {
+fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut dyn Write, win_size: usize, sliding: bool) {
 
     if sliding {
         eprintln!("running sliding-window mode");
@@ -124,7 +124,7 @@ fn send_seq_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, win_size:
 
 /// compute mappbility score for list of input chromosome positions
 /// each line in input line should be in chrX:NNNNNNN format
-fn send_list_slices(fasta: fasta::Reader<File>, aligner_in: &mut Write, list_pos: Vec<String>, win_size: usize) {
+fn send_list_slices(fasta: fasta::Reader<File>, aligner_in: &mut dyn Write, list_pos: Vec<String>, win_size: usize) {
 
     for entry in fasta.records() {
         let chr = entry.unwrap();

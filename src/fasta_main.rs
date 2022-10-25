@@ -1,36 +1,38 @@
 
+#![allow(unused_must_use)]
+
 use std::env;
 
 #[macro_use] mod common;
 mod fasta_check;
 mod fasta_to_raw; mod fasta_simplify_read_ids;
-mod fasta_interleave; mod fasta_trim;
-mod fasta_trim_by_quality;
+mod fasta_interleave; mod fasta_deinterleave;
+mod fasta_trim; mod fasta_trim_by_quality;
 mod fasta_mask_by_quality;
 mod fasta_gc_content;
-mod fasta_mappability_track; mod fasta_add_barcode;
+mod fasta_add_barcode;
 mod fasta_demultiplex;
 mod fasta_convert_basespace;
-mod fasta_statistics; mod fasta_remove_base_qualities;
+mod fasta_statistics;
+mod fasta_add_base_qualities; mod fasta_remove_base_qualities;
 mod fasta_extract_dual_umi; mod fasta_split_into_anchors;
 
 const USAGE: &str = "
 Usage:
   fasta check <fasta/fastq>
   fasta to raw <fasta/fastq>
+  fasta add base qualities <fasta> <baseq>
   fasta remove base qualities <fastq>
   fasta simplify read ids <fastq_file>
   fasta interleave <fastq_1> <fastq_2>
+  fasta deinterleave <interleaved_fastq> <out_prefix>
   fasta split into anchors <fastq> <anchor_len>
   fasta trim <fastq_file>
   fasta trim by quality <fastq_file> <min_baseq>
-  fasta trim adapter <fastq_file>
   fasta mask by quality <fastq_file> <min_baseq>
-  fasta mappability track <genome>
   fasta gc content <genome.fa> <regions.bed>
   fasta add barcode <fastq_file> <barcode_file> <barcode_format>
   fasta extract dual umi <interleaved_fastq>
-  fasta consensus <interleaved_fastq>
   fasta convert basespace <fastq_file>
   fasta demultiplex <sample_sheet> <fastq_1> <fastq_2>
   fasta demultiplex spe <sample_sheet> <fastq_1> <fastq_2>
@@ -44,12 +46,16 @@ fn main() {
 		fasta_check::main();
 	} else if args.len() >= 3 && args[1..3] == ["to", "raw"] {
 		fasta_to_raw::main();
+	} else if args.len() >= 4 && args[1..4] == ["add", "base", "qualities"] {
+		fasta_add_base_qualities::main();
 	} else if args.len() >= 4 && args[1..4] == ["remove", "base", "qualities"] {
 		fasta_remove_base_qualities::main();
 	} else if args.len() >= 4 && args[1..4] == ["simplify", "read", "ids"] {
 		fasta_simplify_read_ids::main();
 	} else if args.len() >= 2 && args[1] == "interleave" {
 		fasta_interleave::main();
+	} else if args.len() >= 2 && args[1] == "deinterleave" {
+		fasta_deinterleave::main();
 	} else if args.len() >= 4 && args[1..4] == ["split", "into", "anchors"] {
 		fasta_split_into_anchors::main();
 	} else if args.len() >= 4 && args[1..4] == ["trim", "by", "quality"] {
@@ -58,8 +64,6 @@ fn main() {
 		fasta_trim::main();
 	} else if args.len() >= 4 && args[1..4] == ["mask", "by", "quality"] {
 		fasta_mask_by_quality::main();
-    } else if args.len() >= 3 && args[1..3] == ["mappability", "track"] {
-		fasta_mappability_track::main();
 	} else if args.len() >= 3 && args[1..3] == ["gc", "content"] {
 		fasta_gc_content::main();
 	} else if args.len() >= 3 && args[1..3] == ["add", "barcode"] {

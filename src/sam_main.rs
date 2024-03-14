@@ -12,8 +12,6 @@ mod sam_minimize; mod sam_tags_from_qname; mod sam_qname_from_tags;
 mod sam_trim_qnames;
 mod sam_mark_duplicates;
 mod sam_consensus;
-mod sam_gc_histogram;
-mod sam_consensus;
 
 const USAGE: &str = "
 Usage:
@@ -67,8 +65,6 @@ fn main() {
 		sam_merge::main();
 	} else if args.len() >= 2 && args[1] == "minimize" {
 		sam_minimize::main();
-	} else if args.len() >= 3 && args[1..3] == ["recalculate", "tlen"] {
-		sam_recalculate_tlen::main();
 	} else if args.len() >= 4 && args[1..4] == ["tags", "from", "qname"] {
 		sam_tags_from_qname::main();
 	} else if args.len() >= 4 && args[1..4] == ["qname", "from", "tags"] {
